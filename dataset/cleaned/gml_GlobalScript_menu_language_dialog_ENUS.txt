@@ -1,0 +1,7 @@
+Language
+EN-US
+PT-BR
+RU-RU
+FR-FR
+ES-MX
+JA-JP
