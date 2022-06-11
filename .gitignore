@@ -1,7 +1,12 @@
 __pycache__
 .mypy_cache/
-models/
-checkpoint
-samples
+models/*
+checkpoint/*
+samples/*
 dist-newstyle
 bin
+!models/124M
+!models/oscar
+!checkpoint/run1
+!samples/run1
+*.data-00000-of-00001
