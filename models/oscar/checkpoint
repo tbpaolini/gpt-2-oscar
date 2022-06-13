@@ -1,1 +1,2 @@
-../../checkpoint/run1/checkpoint
+model_checkpoint_path: "model-809"
+all_model_checkpoint_paths: "model-809"
