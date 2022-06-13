@@ -9,14 +9,14 @@ import tensorflow.compat.v1 as tf
 import model, sample, encoder
 
 def interact_model(
-    model_name='124M',
+    model_name='oscar',
     seed=None,
     nsamples=1,
     batch_size=1,
-    length=None,
-    temperature=1,
-    top_k=0,
-    top_p=1,
+    length=40,
+    temperature=0.7,
+    top_k=40,
+    top_p=0,
     models_dir='models',
 ):
     """
