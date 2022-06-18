@@ -2,13 +2,13 @@ import re
 from pathlib import Path
 
 # Folders of the raw dataset and its cleaned output
-dataset_path = Path("raw")
+dataset_path = Path("raws")
 cleaned_path = Path("cleaned")
 
 # Regular expressions for cleaning the dataset
 string_regex = re.compile(r'"(.+)"')        # Get the strings
-tokens_regex = re.compile(r'([%~$^]\d+_)')  # Get the text's markup
-spaces_regex = re.compile(r'(\s{2,255})')   # Get sequences of 2 or more blank spaces
+tokens_regex = re.compile(r'([%~$^\*]\d+_)')  # Get the text's markup
+spaces_regex = re.compile(r'(\s{2,})')   # Get sequences of 2 or more blank spaces
 
 # Get the two variations of the rotating texts
 rotating_text_left  = re.compile(r'(?:@(.+?)@.+?@)')
