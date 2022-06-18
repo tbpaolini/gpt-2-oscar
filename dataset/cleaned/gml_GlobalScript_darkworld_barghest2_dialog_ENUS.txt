@@ -9,11 +9,11 @@ I don't care about you or any of this. I just want to find Baron and go home.
 So let me get on with it.
 ...Good luck kid...
 ...You're going to need it...
-*2_Its time Are you ready
+Its time Are you ready
 I don't care what you are. Get out of my way.
-*2_You made it this far Just dont give up
+You made it this far Just dont give up
 Stop talking and fight!
-*2_Its going to be ok You can do this
+Its going to be ok You can do this
 I SAID STOP TALKING!!!
 &1_That's it Lor&1_e. D&0_ont give &1_up. Keep &0_fighting.
 Wait... What...?
@@ -28,7 +28,7 @@ No...
 Don't say that...
 Don't say anything...
 This is your chance.
-*2_START THE CYCLE
+START THE CYCLE
 There's a ledger set on... Nightmares... Let's call it nightmares...
 Record the journey so far? No Yes
 The ink sinks into the page and fades out. Your progress has been saved.
