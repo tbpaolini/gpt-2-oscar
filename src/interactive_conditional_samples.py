@@ -91,6 +91,7 @@ def interact_model(
         ckpt = tf.train.latest_checkpoint(os.path.join(models_dir, model_name))
         saver.restore(sess, ckpt)
 
+        print("-" * 40 + "\nBot is ready! Listening for messages.\n" + "-" * 40)
         while True:
             next_item = input_queue.get()
             if next_item == STOP:
