@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
 
+from __future__ import annotations
+
+from urllib import response
 import fire
 import json
 import os
@@ -7,6 +10,23 @@ import numpy as np
 import tensorflow._api.v2.compat.v1 as tf
 
 import model, sample, encoder
+
+import multiprocessing as mp
+
+"""
+The model will be run in a separate process. It will use an input queue to get
+messages, and an output queue to place its responses.
+
+The itens of the queues is a tuple of two elements:
+    - the message itself as a string (index 0)
+    - an arbitrary integer number to match the input with the output (index 1)
+
+When the sentinel object STOP is found at the queues, it indicates that the
+queues should stop being processed, and the program should exit.
+"""
+
+STOP = "STOP"
+UserText:mp.Queue[tuple[str,int]]
 
 def interact_model(
     model_name='oscar',
@@ -18,6 +38,8 @@ def interact_model(
     top_k=40,
     top_p=0.9,
     models_dir='models',
+    input_queue:UserText=None,
+    output_queue:UserText=None,
 ):
     """
     Interactively run the model
@@ -70,22 +92,19 @@ def interact_model(
         saver.restore(sess, ckpt)
 
         while True:
-            raw_text = input("Model prompt >>> ")
-            while not raw_text:
-                print('Prompt should not be empty!')
-                raw_text = input("Model prompt >>> ")
+            next_item = input_queue.get()
+            if next_item == STOP:
+                output_queue.put(STOP, block=False)
+                break
+            raw_text, response_id = next_item
             context_tokens = enc.encode(raw_text)
-            generated = 0
             for _ in range(nsamples // batch_size):
                 out = sess.run(output, feed_dict={
                     context: [context_tokens for _ in range(batch_size)]
                 })[:, len(context_tokens):]
                 for i in range(batch_size):
-                    generated += 1
                     text = enc.decode(out[i])
-                    print("=" * 40 + " SAMPLE " + str(generated) + " " + "=" * 40)
-                    print(text)
-            print("=" * 80)
+                    output_queue.put((text, response_id), block=False)
 
 if __name__ == '__main__':
     fire.Fire(interact_model)
