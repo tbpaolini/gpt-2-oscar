@@ -203,5 +203,5 @@ if __name__ == "__main__":
         port = 6697,
         user = "oscar__bot",
         password = os.getenv("TWITCH_KEY"),
-        channel = "#tiago_paolini",
+        channel = "#piratesoftware",
     )
