@@ -1,5 +1,8 @@
-import socket, os
+import socket, os, re
+import multiprocessing as mp
 
+# Regular expression to get the message's ID, timestamp, and body
+MESSAGE_REGEX = re.compile(r"(?i)^.+?;id=([\w-]+);.+?;tmi-sent-ts=([\w-]+);.+? PRIVMSG #\w+? :(.+)")
 
 class IrcClient():
 
@@ -36,6 +39,12 @@ class IrcClient():
                     pong_msg = line.split()[1]
                     self.send(f"PONG {pong_msg}")
                 
+                text_match = MESSAGE_REGEX.search(line)
+                
+                if text_match is not None:
+                    message_id, message_timestamp, message_body = text_match
+                    message_timestamp = float(message_timestamp) / 1000.0
+
                 print(line)
 
 
