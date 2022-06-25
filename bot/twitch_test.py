@@ -42,7 +42,7 @@ class IrcClient():
                 text_match = MESSAGE_REGEX.search(line)
                 
                 if text_match is not None:
-                    message_id, message_timestamp, message_body = text_match
+                    message_id, message_timestamp, message_body = text_match.groups()
                     message_timestamp = float(message_timestamp) / 1000.0
 
                 print(line)
