@@ -10,3 +10,4 @@ bin
 !checkpoint/run1
 !samples/run1
 *.data-00000-of-00001
+chatlog.txt

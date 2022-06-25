@@ -4,15 +4,17 @@ import socket, ssl, os, re
 import multiprocessing as mp
 import threading as td
 from time import sleep
+from datetime import datetime, timedelta
+from pathlib import Path
 
-# Regular expression to get the message's ID, timestamp, and body
-MESSAGE_REGEX = re.compile(r"(?i)^.+?;id=([\w-]+);.+?;tmi-sent-ts=([\w-]+);.+? PRIVMSG #\w+? :(.+)")
+# Regular expression to get the message's username, ID, timestamp, and body
+MESSAGE_REGEX = re.compile(r"(?i)^.+?;display-name=(\w+).+?;id=([\w-]+);.+?;tmi-sent-ts=([\d]+);.+? PRIVMSG #\w+? :(.+)")
 
 SHUTDOWN = ("stop", "quit", "exit")
 
 class OscarBot():
     
-    def __init__(self, server:str, port:int, user:str, password:str, channel:str):
+    def __init__(self, server:str, port:int, user:str, password:str, channel:str, chatlog:Path=Path("chatlog.txt")):
         print("Starting OScar bot...")
         self.running = True
         
@@ -47,6 +49,9 @@ class OscarBot():
         # self.workers = (model_process, input_thread, output_thread)
         # exit_listener  = td.Thread(target=self.clean_exit)
         # exit_listener.start()
+
+        # Log to file the messages that the bot reply to
+        self.chatlog = chatlog
     
     def command(self, command:str):
         """Sends a raw command to the IRC server."""
@@ -111,9 +116,15 @@ class OscarBot():
                 
                 # Place the message on the queue to be answered
                 if text_match is not None:
-                    message_id, message_timestamp, message_body = text_match.groups()
+                    username, message_id, message_timestamp, message_body = text_match.groups()
                     message_timestamp = float(message_timestamp) / 1000.0
                     self.input_queue.put_nowait((message_body, message_id))
+
+                    # Log the response
+                    log_msg = f"{datetime.fromtimestamp(message_timestamp)}: [{username}] {message_body}\n"
+                    print(log_msg, end="")
+                    with open(self.chatlog, "at", encoding="utf-8") as chatlog_file:
+                        chatlog_file.write(log_msg)
 
             # self.question = input()
             # if self.question in SHUTDOWN: break
@@ -129,7 +140,14 @@ class OscarBot():
             message_body, message_id = response     # Get the response's contents and the ID of the message being replied to
             
             # Post the response to the chat
-            self.command(f"@reply-parent-msg-id={message_id} PRIVMSG {self.channel} :{post_process(message_body)}\n")
+            message_body = post_process(message_body)
+            self.command(f"@reply-parent-msg-id={message_id} PRIVMSG {self.channel} :{message_body}\n")
+
+            # Log the response
+            log_msg = f"{datetime.utcnow()}: [{self.user}] {message_body}\n"
+            print(log_msg, end="")
+            with open(self.chatlog, "at", encoding="utf-8") as chatlog_file:
+                chatlog_file.write(log_msg)
     
     def clean_exit(self, *args):
         while True:
