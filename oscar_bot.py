@@ -11,8 +11,6 @@ from random import randint
 # Regular expression to get the message's username, ID, timestamp, and body
 MESSAGE_REGEX = re.compile(r"(?i)^.+?;display-name=(\w+).+?;id=([\w-]+);.+?;tmi-sent-ts=([\d]+);.+? PRIVMSG #\w+? :(.+)")
 
-SHUTDOWN = ("stop", "quit", "exit")
-
 class OscarBot():
     
     def __init__(
@@ -52,9 +50,10 @@ class OscarBot():
         output_thread = td.Thread(target=self.ai_response)
         output_thread.start()
 
-        # self.workers = (model_process, input_thread, output_thread)
-        # exit_listener  = td.Thread(target=self.clean_exit)
-        # exit_listener.start()
+        # Thread that takes the command for quitting the bot
+        self.workers = (model_process, input_thread, output_thread)
+        exit_listener  = td.Thread(target=self.clean_exit)
+        exit_listener.start()
 
         # Log to file the messages that the bot reply to
         self.chatlog = chatlog
@@ -86,6 +85,8 @@ class OscarBot():
     def connect(self):
         """Log in to the IRC server."""
 
+        if not self.running: return
+        
         retry_count = 0
         while True:
             try:
@@ -101,6 +102,7 @@ class OscarBot():
             except (OSError, InterruptedError):
                 # Retry after some time, if the connection failed
                 # The wait time begins at 1 second, and doubles each retry until a maximum of 128 seconds.
+                if not self.running: return
                 wait_time = min(2**retry_count, 128)
                 retry_count += 1
                 sleep(wait_time)
@@ -158,10 +160,6 @@ class OscarBot():
                     print(log_msg, end="")
                     with open(self.chatlog, "at", encoding="utf-8") as chatlog_file:
                         chatlog_file.write(log_msg)
-
-            # self.question = input()
-            # if self.question in SHUTDOWN: break
-            # self.input_queue.put_nowait((self.question, 0))
     
     def ai_response(self):
         """The AI responding the user's messages."""
@@ -183,13 +181,19 @@ class OscarBot():
                 chatlog_file.write(log_msg)
     
     def clean_exit(self, *args):
+        """Allows the program to exit when 'stop', 'quit', or 'exit' is entered on the terminal;"""
         while True:
-            if self.question.lower() in SHUTDOWN: break
-            sleep(1)
+            user_input = input().strip().lower()
+            if user_input in ("stop", "quit", "exit"):
+                break
+            else:
+                print("To shutdown the bot, please type 'stop', 'quit', or 'exit' (without quotes) then press ENTER.")
         
         print("Closing bot...")
         self.input_queue.put_nowait(STOP)
         self.running = False
+        self.ssl_sock.shutdown(socket.SHUT_RDWR)
+        self.ssl_sock.close()
         for worker in self.workers:
             worker.join()
 
