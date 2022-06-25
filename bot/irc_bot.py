@@ -14,19 +14,29 @@ class IrcClient():
         self.channel = channel
         
         self.connect()
+        self.run()
+    
+    def send(self, command:str):
+        self.sock.send(f"{command}\n".encode(encoding="utf-8"))  # IMPORTANT: IRC commands must end with a newline character.
     
     def connect(self):
         self.sock.connect((self.server, self.port))
-        self.sock.send(f"CAP REQ :twitch.tv/tags\n".encode(encoding="utf-8"))
-        self.sock.send(f"PASS {self.password}\n".encode(encoding="utf-8"))
-        self.sock.send(f"NICK {self.user}\n".encode(encoding="utf-8"))
-        # self.sock.send(f"PRIVMSG #tiago_paolini :Olá! Sucesso :)\n".encode(encoding="utf-8"))
+        self.send(f"CAP REQ :twitch.tv/tags")
+        self.send(f"PASS {self.password}")
+        self.send(f"NICK {self.user}")
+        self.send(f"JOIN {self.channel}")
         pass
     
-    def receive(self):
+    def run(self):
         while self.running:
             data = self.sock.recv(2048)
-            print(data.decode(encoding="utf-8").split("\r\n"))
+            for line in data.decode(encoding="utf-8").split("\r\n"):
+                
+                if line.startswith("PING "):
+                    pong_msg = line.split()[1]
+                    self.send(f"PONG {pong_msg}")
+                
+                print(line)
 
 
 if __name__ == "__main__":
@@ -36,5 +46,5 @@ if __name__ == "__main__":
         port = 6667,
         user = "oscar__bot",
         password = os.getenv("TWITCH_KEY"),
-        channel = "tiago_paolini",
+        channel = "#tiago_paolini",
     )
