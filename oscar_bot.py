@@ -1,6 +1,6 @@
 from src.interactive_conditional_samples import interact_model, STOP
 from bot.text_process import post_process
-import socket, os, re
+import socket, ssl, os, re
 import multiprocessing as mp
 import threading as td
 from time import sleep
@@ -27,7 +27,9 @@ class OscarBot():
 
         # Connecting to Twitch's IRC server
         print("Connecting to Twitch...")
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.plain_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.ssl_context = ssl.create_default_context()
+        self.ssl_sock = self.ssl_context.wrap_socket(self.plain_sock, server_hostname=server)
         self.server = server
         self.port = port
         self.user = user
@@ -53,7 +55,7 @@ class OscarBot():
         while retry_count < 5:
             try:
                 # Try up to 5 times to send the command
-                self.sock.send(f"{command}\n".encode(encoding="utf-8"))  # IMPORTANT: IRC commands must end with a newline character.
+                self.ssl_sock.send(f"{command}\n".encode(encoding="utf-8"))  # IMPORTANT: IRC commands must end with a newline character.
                 return
             
             except (OSError, InterruptedError):
@@ -67,7 +69,7 @@ class OscarBot():
         retry_count = 0
         while True:
             try:
-                self.sock.connect((self.server, self.port))     # Connect to the server
+                self.ssl_sock.connect((self.server, self.port))     # Connect to the server
                 self.command(f"CAP REQ :twitch.tv/tags")        # Request Tags on the messages (allows the bot to get the message's ID)
                 self.command(f"PASS {self.password}")           # The OAuth token from Twitch
                 self.command(f"NICK {self.user}")               # The username of the bot
@@ -91,7 +93,7 @@ class OscarBot():
             
             # Wait for data from the server
             try:
-                data = self.sock.recv(2048)
+                data = self.ssl_sock.recv(2048)
             except (OSError, InterruptedError):
                 self.connect()
                 continue
@@ -143,7 +145,7 @@ class OscarBot():
 if __name__ == "__main__":
     OscarBot(
         server = "irc.chat.twitch.tv",
-        port = 6667,
+        port = 6697,
         user = "oscar__bot",
         password = os.getenv("TWITCH_KEY"),
         channel = "#tiago_paolini",
