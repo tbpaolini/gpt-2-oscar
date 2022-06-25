@@ -93,7 +93,7 @@ class OscarBot():
             try:
                 data = self.sock.recv(2048)
             except (OSError, InterruptedError):
-                self.connect
+                self.connect()
                 continue
 
             # Decode the data's bytes into Unicode text and split its lines
