@@ -1,11 +1,12 @@
 from src.interactive_conditional_samples import interact_model, STOP
-from bot.text_process import post_process
+from bot.text_process import post_process, pre_process
 import socket, ssl, os, re
 import multiprocessing as mp
 import threading as td
 from time import sleep
 from datetime import datetime, timedelta
 from pathlib import Path
+from random import randint
 
 # Regular expression to get the message's username, ID, timestamp, and body
 MESSAGE_REGEX = re.compile(r"(?i)^.+?;display-name=(\w+).+?;id=([\w-]+);.+?;tmi-sent-ts=([\d]+);.+? PRIVMSG #\w+? :(.+)")
@@ -14,7 +15,12 @@ SHUTDOWN = ("stop", "quit", "exit")
 
 class OscarBot():
     
-    def __init__(self, server:str, port:int, user:str, password:str, channel:str, chatlog:Path=Path("chatlog.txt")):
+    def __init__(
+        self, server:str, port:int, user:str, password:str, channel:str,    # Login credentials
+        chatlog:Path=Path("chatlog.txt"),   # Path to the log file
+        min_wait:int=1800,  # Wait time (in seconds) for the bot replying without bein mentioned,
+        max_wait:int=2400   # the bot randomly choses a value between the min and max wait times.
+    ):
         print("Starting OScar bot...")
         self.running = True
         
@@ -52,6 +58,15 @@ class OscarBot():
 
         # Log to file the messages that the bot reply to
         self.chatlog = chatlog
+
+        # Cooldown for the bot to reply to a message without being mentioned
+        self.min_wait = min_wait
+        self.max_wait = max_wait
+        self.cooldown = timedelta(seconds=randint(self.min_wait, self.max_wait))
+        
+        # Keep track of when was the bot's last reply
+        # (the value of datetime.min means that the bot has not replied yet)
+        self.last_reply_time = datetime.min
     
     def command(self, command:str):
         """Sends a raw command to the IRC server."""
@@ -116,11 +131,29 @@ class OscarBot():
                 
                 # Place the message on the queue to be answered
                 if text_match is not None:
+                    
+                    # Parse the message's contents
                     username, message_id, message_timestamp, message_body = text_match.groups()
-                    message_timestamp = float(message_timestamp) / 1000.0
+
+                    # Check how long ago the bot has last replied
+                    last_reply_age = datetime.utcnow() - self.last_reply_time
+
+                    # Check if the last bot reply happened longer ago than the cooldown time,
+                    # or if "oscar" appears anywhere in the message body.
+                    # If neither of the conditions are true, the message is skipped.
+                    if not ( (last_reply_age > self.cooldown) or ("oscar" in message_body.lower()) ):
+                        continue
+                    
+                    # Queue the message to be answered by the bot
+                    message_body = pre_process(message_body)
                     self.input_queue.put_nowait((message_body, message_id))
 
+                    # Reset the cooldown time
+                    self.last_reply_time = datetime.utcnow()
+                    self.cooldown = timedelta(seconds=randint(self.min_wait, self.max_wait))
+
                     # Log the response
+                    message_timestamp = float(message_timestamp) / 1000.0
                     log_msg = f"{datetime.fromtimestamp(message_timestamp)}: [{username}] {message_body}\n"
                     print(log_msg, end="")
                     with open(self.chatlog, "at", encoding="utf-8") as chatlog_file:
