@@ -1,3 +1,4 @@
+from urllib3 import Retry
 from src.interactive_conditional_samples import interact_model, STOP
 from bot.text_process import post_process
 import socket, os, re
@@ -48,15 +49,41 @@ class OscarBot():
     
     def command(self, command:str):
         """Sends a raw command to the IRC server."""
-        self.sock.send(f"{command}\n".encode(encoding="utf-8"))  # IMPORTANT: IRC commands must end with a newline character.
+        
+        retry_count = 0
+        while retry_count < 5:
+            try:
+                # Try up to 5 times to send the command
+                self.sock.send(f"{command}\n".encode(encoding="utf-8"))  # IMPORTANT: IRC commands must end with a newline character.
+                return
+            
+            except (OSError, InterruptedError):
+                # Attempt reconnecting upon failue
+                self.connect()
+                retry_count += 1
     
     def connect(self):
         """Log in to the IRC server."""
-        self.sock.connect((self.server, self.port))     # Connect to the server
-        self.command(f"CAP REQ :twitch.tv/tags")        # Request Tags on the messages (allows the bot to get the message's ID)
-        self.command(f"PASS {self.password}")           # The OAuth token from Twitch
-        self.command(f"NICK {self.user}")               # The username of the bot
-        self.command(f"JOIN {self.channel}")            # The Twitch channel the bot is listening
+
+        retry_count = 0
+        while True:
+            try:
+                self.sock.connect((self.server, self.port))     # Connect to the server
+                self.command(f"CAP REQ :twitch.tv/tags")        # Request Tags on the messages (allows the bot to get the message's ID)
+                self.command(f"PASS {self.password}")           # The OAuth token from Twitch
+                self.command(f"NICK {self.user}")               # The username of the bot
+                self.command(f"JOIN {self.channel}")            # The Twitch channel the bot is listening
+                
+                # Exit the function if no errors happened during connection
+                return
+            
+            except (OSError, InterruptedError):
+                # Retry after some time, if the connection failed
+                # The wait time begins at 1 second, and doubles each retry until a maximum of 128 seconds.
+                wait_time = min(2**retry_count, 128)
+                retry_count += 1
+                sleep(wait_time)
+                continue
 
     def get_messages(self):
         """Keep listening for messages until the program is closed."""
