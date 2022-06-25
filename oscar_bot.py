@@ -1,4 +1,3 @@
-from urllib3 import Retry
 from src.interactive_conditional_samples import interact_model, STOP
 from bot.text_process import post_process
 import socket, os, re
@@ -91,7 +90,11 @@ class OscarBot():
         while self.running:
             
             # Wait for data from the server
-            data = self.sock.recv(2048)
+            try:
+                data = self.sock.recv(2048)
+            except (OSError, InterruptedError):
+                self.connect
+                continue
 
             # Decode the data's bytes into Unicode text and split its lines
             for line in data.decode(encoding="utf-8").split("\r\n"):
