@@ -6,7 +6,7 @@ SPACES_REGEX = re.compile(r"\s{2,}")
 
 def pre_process(text:str) -> str:
     """Filters the message before submitting it to the AI to respond."""
-    return text.replace("@OScar__bot", "", 1)   # Remove the bot's username
+    return text.replace("@OScar__bot", " ", 1)   # Remove the bot's username
 
 def post_process(text_input:str) -> str:
     """Filters the bot's response, so it begins and ends at a full sentence.
@@ -26,6 +26,6 @@ def post_process(text_input:str) -> str:
     text_output = SPACES_REGEX.sub(" ", text_output)
 
     # Remove the @ so the bot do not tag anyone
-    text_out_put = text_output.replace("@", "")
+    text_output = text_output.replace("@", "(at)")
 
     return text_output
