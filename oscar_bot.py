@@ -96,6 +96,21 @@ class OscarBot():
                 self.command(f"NICK {self.user}")               # The username of the bot
                 self.command(f"JOIN {self.channel}")            # The Twitch channel the bot is listening
                 
+                # Check if the connection was successful, and print the server's response
+                server_response = self.ssl_sock.recv(2048).decode(encoding="utf-8").split("\r\n")
+                success = False
+                fatal = False
+                for line in server_response:
+                    if "Welcome, GLHF!" in line:
+                        success=True
+                    if "Login authentication failed" in line or "Improperly formatted auth" in line:
+                        fatal = True
+                    print(line)
+                
+                # A failed connection might be just a temporary issue, so we are not necessarily closing the bot
+                if not success: print("Connection to Twitch failed.")
+                if fatal: self.close()  # Close the bot only if the login credentials are wrong
+
                 # Exit the function if no errors happened during connection
                 return
             
@@ -189,6 +204,9 @@ class OscarBot():
             else:
                 print("To shutdown the bot, please type 'stop', 'quit', or 'exit' (without quotes) then press ENTER.")
         
+        self.close()    # Close the connection and cleanly close the program
+        
+    def close(self):
         print("Closing bot...")
         self.input_queue.put_nowait(STOP)
         self.running = False
