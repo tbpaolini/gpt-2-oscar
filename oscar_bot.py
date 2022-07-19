@@ -1,3 +1,4 @@
+from numpy import empty
 from src.interactive_conditional_samples import interact_model, STOP
 from bot.text_process import post_process, pre_process
 import socket, ssl, os, re
@@ -21,6 +22,7 @@ class OscarBot():
     ):
         print("Starting OScar bot...")
         self.running = True
+        self.workers = None
         
         # Starting the AI model
         self.input_queue = mp.Queue()   # The messages the bot need to answer
@@ -41,6 +43,7 @@ class OscarBot():
         self.user = user
         self.password = password
         self.channel = channel
+        self.auth_failed = False
         self.connect()
 
         # Separate threads for getting and sending messages
@@ -66,6 +69,10 @@ class OscarBot():
         # Keep track of when was the bot's last reply
         # (the value of datetime.min means that the bot has not replied yet)
         self.last_reply_time = datetime.min
+
+        # Close the bot if authentication failed
+        if self.auth_failed: self.close()
+        exit_listener.join()
     
     def command(self, command:str):
         """Sends a raw command to the IRC server."""
@@ -98,18 +105,17 @@ class OscarBot():
                 
                 # Check if the connection was successful, and print the server's response
                 server_response = self.ssl_sock.recv(2048).decode(encoding="utf-8").split("\r\n")
+                server_response += self.ssl_sock.recv(2048).decode(encoding="utf-8").split("\r\n")
                 success = False
-                fatal = False
                 for line in server_response:
                     if "Welcome, GLHF!" in line:
                         success=True
                     if "Login authentication failed" in line or "Improperly formatted auth" in line:
-                        fatal = True
+                        self.auth_failed = True
                     print(line)
                 
                 # A failed connection might be just a temporary issue, so we are not necessarily closing the bot
                 if not success: print("Connection to Twitch failed.")
-                if fatal: self.close()  # Close the bot only if the login credentials are wrong
 
                 # Exit the function if no errors happened during connection
                 return
@@ -126,6 +132,7 @@ class OscarBot():
     def get_messages(self):
         """Keep listening for messages until the program is closed."""
 
+        empty_data = 0
         while self.running:
             
             # Wait for data from the server
@@ -133,7 +140,15 @@ class OscarBot():
                 data = self.ssl_sock.recv(2048)
             except (OSError, InterruptedError):
                 self.connect()
+                if self.auth_failed: self.close()
                 continue
+
+            # If connection failed, the bot might keep receiving some empty packets
+            if len(data) < 4:
+                empty_data += 1
+                if empty_data >= 5: self.connect()
+            else:
+                empty_data = 0
 
             # Decode the data's bytes into Unicode text and split its lines
             for line in data.decode(encoding="utf-8").split("\r\n"):
@@ -180,7 +195,7 @@ class OscarBot():
         """The AI responding the user's messages."""
 
         # Keep checking for new AI responses until the program is closed
-        while True:
+        while self.running:
             response = self.output_queue.get()      # Wait for a new item at the output queue
             if response == STOP: break              # Exit if got the STOP signal
             message_body, message_id = response     # Get the response's contents and the ID of the message being replied to
@@ -197,23 +212,42 @@ class OscarBot():
     
     def clean_exit(self, *args):
         """Allows the program to exit when 'stop', 'quit', or 'exit' is entered on the terminal;"""
-        while True:
+        while self.running:
             user_input = input().strip().lower()
             if user_input in ("stop", "quit", "exit"):
-                break
-            else:
+                self.close()    # Close the connection and cleanly close the program
+                return
+            elif self.running:
                 print("To shutdown the bot, please type 'stop', 'quit', or 'exit' (without quotes) then press ENTER.")
         
-        self.close()    # Close the connection and cleanly close the program
-        
     def close(self):
-        print("Closing bot...")
+        print("Shutting down bot...")
+        
+        # Close the connection
         self.input_queue.put_nowait(STOP)
+        self.output_queue.put_nowait(STOP)
         self.running = False
+        if not self.auth_failed: self.command("QUIT")
         self.ssl_sock.shutdown(socket.SHUT_RDWR)
         self.ssl_sock.close()
+
+        # Wait until all workers have started (for the case we are still during startup)
+        while self.workers is None: sleep(0.1)
+        
+        # Give some time to the process to end by itself
+        sleep(0.2)
+
+        # Terminate the process if it is still running
+        if self.workers[0].is_alive(): self.workers[0].terminate()
+        
+        # Join the processes and threads 
         for worker in self.workers:
             worker.join()
+        
+        # This "error message" is here because the clean_exit() thread might block the exit while waiting for input
+        # Pressing ENTER give it an input so it no longer blocks
+        if self.auth_failed:
+            print("Login credentials are wrong.\nPress ENTER exit...")
 
 if __name__ == "__main__":
     OscarBot(
