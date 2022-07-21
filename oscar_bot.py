@@ -128,6 +128,17 @@ class OscarBot():
                 retry_count += 1
                 sleep(wait_time)
                 continue
+            
+            except ValueError:
+                # Create a new connection, if the old one failed reconnecting
+                self.ssl_sock.close()
+                self.plain_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                self.ssl_context = ssl.create_default_context()
+                self.ssl_sock = self.ssl_context.wrap_socket(self.plain_sock, server_hostname=self.server)
+                wait_time = min(2**retry_count, 128)
+                retry_count += 1
+                sleep(wait_time)
+                continue
 
     def get_messages(self):
         """Keep listening for messages until the program is closed."""
