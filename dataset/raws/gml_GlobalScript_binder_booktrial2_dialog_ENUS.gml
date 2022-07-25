@@ -1,4 +1,4 @@
-binder_booktrial2_dialog_ENUS = function() // gml_Script_binder_booktrial2_dialog_ENUS
+binder_booktrial2_dialog_ENUS = function() //gml_Script_binder_booktrial2_dialog_ENUS
 {
     global.dialog_array[1][1] = "%3_Great job getting through that!$40_ $1_#Let me know if you need help."
     global.dialog_array[1][2] = (4 << 0)

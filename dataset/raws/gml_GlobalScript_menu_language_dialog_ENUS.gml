@@ -1,4 +1,4 @@
-menu_language_dialog_ENUS = function() // gml_Script_menu_language_dialog_ENUS
+menu_language_dialog_ENUS = function() //gml_Script_menu_language_dialog_ENUS
 {
     global.dialog_array[1][1] = "Language"
     global.dialog_array[2][1] = "EN-US"

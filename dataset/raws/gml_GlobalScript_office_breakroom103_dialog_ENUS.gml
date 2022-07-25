@@ -1,4 +1,4 @@
-office_breakroom103_dialog_ENUS = function() // gml_Script_office_breakroom103_dialog_ENUS
+office_breakroom103_dialog_ENUS = function() //gml_Script_office_breakroom103_dialog_ENUS
 {
     global.dialog_array[1][1] = "There is a jar of red pickles in here.#  Pickles are gross!#  I love pickles!"
     global.dialog_array[2][1] = "A single giant eraser sits in the drawer.$40_ $1_#The word 'pencil' is printed neatly on the #side."

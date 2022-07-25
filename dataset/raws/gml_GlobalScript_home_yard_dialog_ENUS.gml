@@ -1,4 +1,4 @@
-home_yard_dialog_ENUS = function() // gml_Script_home_yard_dialog_ENUS
+home_yard_dialog_ENUS = function() //gml_Script_home_yard_dialog_ENUS
 {
     global.dialog_array[1][1] = "Throw out the garbage?#  Yes#  No"
     global.dialog_array[2][1] = "Throw something out?#  Garbage#  Viking Feast"

@@ -1,4 +1,4 @@
-global_bedhead_dialog_ENUS = function() // gml_Script_global_bedhead_dialog_ENUS
+global_bedhead_dialog_ENUS = function() //gml_Script_global_bedhead_dialog_ENUS
 {
     global.dialog_array[1][1] = "Going back to bed seems like a bad idea."
     global.dialog_array[4][1] = "It's too stormy to see anything..."

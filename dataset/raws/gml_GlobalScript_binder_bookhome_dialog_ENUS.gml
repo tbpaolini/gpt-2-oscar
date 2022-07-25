@@ -1,4 +1,4 @@
-binder_bookhome_dialog_ENUS = function() // gml_Script_binder_bookhome_dialog_ENUS
+binder_bookhome_dialog_ENUS = function() //gml_Script_binder_bookhome_dialog_ENUS
 {
     global.dialog_array[1][1] = "%3_Home at last."
     global.dialog_array[1][2] = (4 << 0)

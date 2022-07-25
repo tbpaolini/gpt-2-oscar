@@ -1,4 +1,4 @@
-forest_forestdream_dialog_ENUS = function() // gml_Script_forest_forestdream_dialog_ENUS
+forest_forestdream_dialog_ENUS = function() //gml_Script_forest_forestdream_dialog_ENUS
 {
     global.dialog_array[1][1] = "%7_^0_           ...Don't give up..."
     global.dialog_array[1][2] = (2 << 0)

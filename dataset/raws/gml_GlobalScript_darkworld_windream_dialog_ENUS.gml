@@ -1,4 +1,4 @@
-darkworld_windream_dialog_ENUS = function() // gml_Script_darkworld_windream_dialog_ENUS
+darkworld_windream_dialog_ENUS = function() //gml_Script_darkworld_windream_dialog_ENUS
 {
     global.dialog_array[1][1] = "%3_Hey buddy."
     global.dialog_array[1][2] = (2 << 0)

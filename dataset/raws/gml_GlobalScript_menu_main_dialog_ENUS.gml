@@ -1,4 +1,4 @@
-menu_main_dialog_ENUS = function() // gml_Script_menu_main_dialog_ENUS
+menu_main_dialog_ENUS = function() //gml_Script_menu_main_dialog_ENUS
 {
     global.dialog_array[1][1] = "Do you really want to forget?#  No#  Yes"
     global.dialog_array[2][1] = "A fresh start for a heavy heart."

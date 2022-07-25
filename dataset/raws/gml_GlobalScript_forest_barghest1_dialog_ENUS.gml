@@ -1,4 +1,4 @@
-forest_barghest1_dialog_ENUS = function() // gml_Script_forest_barghest1_dialog_ENUS
+forest_barghest1_dialog_ENUS = function() //gml_Script_forest_barghest1_dialog_ENUS
 {
     global.dialog_array[1][1] = "%4_$3_Wh... what...?"
     global.dialog_array[1][2] = (1 << 0)

@@ -9,6 +9,7 @@ cleaned_path = Path("cleaned")
 string_regex = re.compile(r'"(.+)"')        # Get the strings
 tokens_regex = re.compile(r'([%~$^\*]\d+_)')  # Get the text's markup
 spaces_regex = re.compile(r'(\s{2,})')   # Get sequences of 2 or more blank spaces
+ellipsis_regex = re.compile(r'^\.\.\.(.+?)\.\.\.$') # Get the lines that start AND end with 3 periods
 
 # Get the two variations of the rotating texts
 rotating_text_left  = re.compile(r'(?:@(.+?)@.+?@)')
@@ -29,8 +30,13 @@ for input_path in dataset_path.glob("*_ENUS.gml"):
     with open(output_path, "wt") as output_file:
         for line in raw_lines:
             clean_line = tokens_regex.sub("", line)     # Remove markup tokens from the text
-            clean_line = clean_line.replace("#", " ")   # Replace the game's newline character (#) by a space
+            
+            clean_line = clean_line.replace(" #Yes", "")    # Remove the "Yes No" options from the string
+            clean_line = clean_line.replace(" #No", "")
+            clean_line = clean_line.replace("#", " ")       # Replace the game's newline character (#) by a space
+            
             clean_line = spaces_regex.sub(" ", clean_line).strip()  # Remove extraneous blank spaces
+            clean_line = ellipsis_regex.sub(r"\g<1>.", clean_line)  # Remove the ellipsis at the beginning and end
             
             # Write the line to the output
             if "@" in clean_line:
@@ -38,5 +44,5 @@ for input_path in dataset_path.glob("*_ENUS.gml"):
                 clean_line_left  = rotating_text_left.sub(r"\1", clean_line)
                 clean_line_right = rotating_text_right.sub(r"\1", clean_line)
                 output_file.write(f"{clean_line_left}\n{clean_line_right}\n")
-            else:
+            elif clean_line != "...":   # Exclude lines that are only an ellipsis
                 output_file.write(clean_line + "\n")

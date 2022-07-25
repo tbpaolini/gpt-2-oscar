@@ -1,4 +1,4 @@
-home_livingroom_dialog_ENUS = function() // gml_Script_home_livingroom_dialog_ENUS
+home_livingroom_dialog_ENUS = function() //gml_Script_home_livingroom_dialog_ENUS
 {
     global.dialog_array[1][1] = "Definitely the best seat in the house."
     global.dialog_array[2][1] = "An exquisite shelf stands before you."

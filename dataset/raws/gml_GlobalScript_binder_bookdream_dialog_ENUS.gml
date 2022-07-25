@@ -1,4 +1,4 @@
-binder_bookdream_dialog_ENUS = function() // gml_Script_binder_bookdream_dialog_ENUS
+binder_bookdream_dialog_ENUS = function() //gml_Script_binder_bookdream_dialog_ENUS
 {
     global.dialog_array[1][1] = "~1_  ...I was like you...############                                   ...once..."
     global.dialog_array[1][2] = (6 << 0)

@@ -1,4 +1,4 @@
-darkworld_falsepath_dialog_ENUS = function() // gml_Script_darkworld_falsepath_dialog_ENUS
+darkworld_falsepath_dialog_ENUS = function() //gml_Script_darkworld_falsepath_dialog_ENUS
 {
     global.dialog_array[1][1] = "~1_...Go then..."
     global.dialog_array[1][2] = (6 << 0)

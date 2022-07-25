@@ -1,4 +1,4 @@
-muspelheim_thanks_dialog_ENUS = function() // gml_Script_muspelheim_thanks_dialog_ENUS
+muspelheim_thanks_dialog_ENUS = function() //gml_Script_muspelheim_thanks_dialog_ENUS
 {
     global.dialog_array[1][1] = "%2_Another toy in my domain?"
     global.dialog_array[1][2] = (27 << 0)

@@ -1,4 +1,4 @@
-darkworld_barghest2_dialog_ENUS = function() // gml_Script_darkworld_barghest2_dialog_ENUS
+darkworld_barghest2_dialog_ENUS = function() //gml_Script_darkworld_barghest2_dialog_ENUS
 {
     global.dialog_array[1][1] = "~1_         ...Can you feel it?..."
     global.dialog_array[1][2] = (6 << 0)

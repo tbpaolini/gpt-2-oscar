@@ -1,4 +1,4 @@
-home_dream_dialog_ENUS = function() // gml_Script_home_dream_dialog_ENUS
+home_dream_dialog_ENUS = function() //gml_Script_home_dream_dialog_ENUS
 {
     global.dialog_array[1][1] = "%5_Hey buddy."
     global.dialog_array[1][2] = (2 << 0)

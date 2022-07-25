@@ -1,4 +1,4 @@
-binder_booktrial3_dialog_ENUS = function() // gml_Script_binder_booktrial3_dialog_ENUS
+binder_booktrial3_dialog_ENUS = function() //gml_Script_binder_booktrial3_dialog_ENUS
 {
     global.dialog_array[1][1] = "This is the final challenge.$40_ $1_#The next room holds The Artifact."
     global.dialog_array[1][2] = (4 << 0)

@@ -1,4 +1,4 @@
-office_corridor103_dialog_ENUS = function() // gml_Script_office_corridor103_dialog_ENUS
+office_corridor103_dialog_ENUS = function() //gml_Script_office_corridor103_dialog_ENUS
 {
     global.dialog_array[1][1] = "The door is gone..."
     global.dialog_array[2][1] = "%4_Lore...?"

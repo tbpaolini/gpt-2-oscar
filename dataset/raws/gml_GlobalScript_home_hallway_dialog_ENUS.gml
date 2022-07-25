@@ -1,4 +1,4 @@
-home_hallway_dialog_ENUS = function() // gml_Script_home_hallway_dialog_ENUS
+home_hallway_dialog_ENUS = function() //gml_Script_home_hallway_dialog_ENUS
 {
     global.dialog_array[1][1] = "Damn, he must be up."
     global.dialog_array[1][2] = (1 << 0)

@@ -1,4 +1,4 @@
-forest_darkbough_dialog_ENUS = function() // gml_Script_forest_darkbough_dialog_ENUS
+forest_darkbough_dialog_ENUS = function() //gml_Script_forest_darkbough_dialog_ENUS
 {
     global.dialog_array[4000][1] = "There's a ledger set on this stump.$40_ $1_#Each page is smudged with damp ink."
     global.dialog_array[4000][2] = (0 << 0)

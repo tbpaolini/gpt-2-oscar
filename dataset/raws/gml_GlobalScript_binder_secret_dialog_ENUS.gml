@@ -1,4 +1,4 @@
-binder_secret_dialog_ENUS = function() // gml_Script_binder_secret_dialog_ENUS
+binder_secret_dialog_ENUS = function() //gml_Script_binder_secret_dialog_ENUS
 {
     global.dialog_array[1][1] = "Want me to come with you?#  Yes#  No"
     global.dialog_array[1][2] = (35 << 0)
