@@ -104,8 +104,10 @@ class OscarBot():
                 self.command(f"JOIN {self.channel}")            # The Twitch channel the bot is listening
                 
                 # Check if the connection was successful, and print the server's response
+                self.ssl_sock.setblocking(False)    # In case the first response already had all the server's response
                 server_response = self.ssl_sock.recv(2048).decode(encoding="utf-8").split("\r\n")
                 server_response += self.ssl_sock.recv(2048).decode(encoding="utf-8").split("\r\n")
+                self.ssl_sock.setblocking(True)
                 success = False
                 for line in server_response:
                     if "Welcome, GLHF!" in line:
@@ -131,6 +133,7 @@ class OscarBot():
             
             except ValueError:
                 # Create a new connection, if the old one failed reconnecting
+                if not self.running: return
                 self.ssl_sock.close()
                 self.plain_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 self.ssl_context = ssl.create_default_context()
