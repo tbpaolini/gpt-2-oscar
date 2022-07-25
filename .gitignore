@@ -6,6 +6,7 @@ samples/*
 dist-newstyle
 bin
 !models/124M
+!models/355M
 !models/oscar
 !checkpoint/run1
 !samples/run1
