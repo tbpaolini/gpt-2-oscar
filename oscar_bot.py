@@ -104,10 +104,8 @@ class OscarBot():
                 self.command(f"JOIN {self.channel}")            # The Twitch channel the bot is listening
                 
                 # Check if the connection was successful, and print the server's response
-                self.ssl_sock.setblocking(False)    # In case the first response already had all the server's response
                 server_response = self.ssl_sock.recv(2048).decode(encoding="utf-8").split("\r\n")
                 server_response += self.ssl_sock.recv(2048).decode(encoding="utf-8").split("\r\n")
-                self.ssl_sock.setblocking(True)
                 success = False
                 for line in server_response:
                     if "Welcome, GLHF!" in line:
