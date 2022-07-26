@@ -1,6 +1,6 @@
-from numpy import empty
 from src.interactive_conditional_samples import interact_model, STOP
 from bot.text_process import post_process, pre_process
+from bot.filter import is_okay
 import socket, ssl, os, re
 import multiprocessing as mp
 import threading as td
@@ -61,7 +61,7 @@ class OscarBot():
 
         # Log to file the messages that the bot reply to
         self.chatlog = chatlog
-        self.chatlog_raw = chatlog.with_name(chatlog.name + "-raw")
+        self.chatlog_blocked = chatlog.with_stem(chatlog.stem + "-blocked")
 
         # Cooldown for the bot to reply to a message without being mentioned
         self.min_wait = min_wait
@@ -217,10 +217,22 @@ class OscarBot():
             response = self.output_queue.get()      # Wait for a new item at the output queue
             if response == STOP: break              # Exit if got the STOP signal
             message_body, message_id = response     # Get the response's contents and the ID of the message being replied to
+
+            # Check if the response do not have any blocked words
+            if not is_okay(message_body):
+                # Log the blocked message
+                with open(self.chatlog_blocked, "at", encoding="utf-8") as file:
+                    file.write(f"{datetime.utcnow()}: [{self.user}] {message_body}\n")
+                
+                # Replace the message with something funny, instead of saying something potentially offensive
+                message_body = "/me is washing his mouth with soap."
             
             # Post the response to the chat
             message_body = post_process(message_body)
-            self.command(f"@reply-parent-msg-id={message_id} PRIVMSG {self.channel} :{message_body}\n")
+            irc_command = f"@reply-parent-msg-id={message_id} PRIVMSG {self.channel} :{message_body}\n"
+            self.command(irc_command)
+            with open(self.chatlog_raw, "at", encoding="utf-8") as file:
+                file.write(f"{datetime.utcnow()} | {irc_command}\n")
 
             # Log the response
             log_msg = f"{datetime.utcnow()}: [{self.user}] {message_body}\n"
