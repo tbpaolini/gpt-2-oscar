@@ -8,7 +8,9 @@ bin
 !models/124M
 !models/355M
 !models/oscar
+!models/oscar2
 !checkpoint/run1
 !samples/run1
+!samples/run2
 *.data-00000-of-00001
 *chatlog*.txt
