@@ -168,8 +168,8 @@ class OscarBot():
                 
                 # Respond the server's PING message with a corresponding PONG
                 if line.startswith("PING "):
-                    pong_msg = line.split()[1]
-                    self.command(f"PONG {pong_msg}")
+                    pong_msg = line.replace("PING", "PONG", 1)
+                    self.command(pong_msg)
                     continue
                 
                 # Parse the message's content
