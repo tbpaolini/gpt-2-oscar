@@ -60,7 +60,7 @@ class OscarBot():
 
         # Log to file the messages that the bot reply to
         self.chatlog = chatlog
-        self.chatlog_blocked = chatlog.with_stem(chatlog.stem + "-blocked")
+        self.chatlog_blocked = self.chatlog.with_stem(chatlog.stem + "-blocked")
 
         # Cooldown for the bot to reply to a message without being mentioned
         self.min_wait = min_wait
