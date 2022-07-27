@@ -7,7 +7,7 @@ NEWLINE_REGEX = re.compile(r"(\w)\n")
 
 def pre_process(text:str) -> str:
     """Filters the message before submitting it to the AI to respond."""
-    return text.replace("@OScar__bot", " ", 1)   # Remove the bot's username
+    return text.replace("@OScar__bot", "OScar", 1)   # Remove the bot's username
 
 def post_process(text_input:str) -> str:
     """Filters the bot's response, so it begins and ends at a full sentence.
