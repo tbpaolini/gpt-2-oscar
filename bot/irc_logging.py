@@ -72,7 +72,7 @@ class IRCLogger():
 
                 # Connect and authenticate to the server
                 self.ssl_sock.connect((self.server, self.port))     # Connect to the server
-                self.command(f"CAP REQ :twitch.tv/commands twitch.tv/tags twitch.tv/tags")  # Request all capabilities to get all messages
+                self.command(f"CAP REQ :twitch.tv/commands twitch.tv/membership twitch.tv/tags")  # Request all capabilities to get all messages
                 self.command(f"PASS {self.password}")           # The OAuth token from Twitch
                 self.command(f"NICK {self.user}")               # The username of the bot
                 self.command(f"JOIN {self.channel}")            # The Twitch channel the bot is listening
