@@ -44,7 +44,6 @@ class OscarBot():
         self.password = password
         self.channel = channel
         self.auth_failed = False
-        self.chatlog_raw = chatlog.with_stem(chatlog.stem + "-raw")
         self.connect()
 
         # Separate threads for getting and sending messages
@@ -173,9 +172,6 @@ class OscarBot():
                     self.command(f"PONG {pong_msg}")
                     continue
                 
-                with open(self.chatlog_raw, "at", encoding="utf-8") as file:
-                    file.write(f"{datetime.utcnow()} | {line}\n")
-                
                 # Parse the message's content
                 text_match = MESSAGE_REGEX.search(line)
                 
@@ -229,10 +225,7 @@ class OscarBot():
             
             # Post the response to the chat
             message_body = post_process(message_body)
-            irc_command = f"@reply-parent-msg-id={message_id} PRIVMSG {self.channel} :{message_body}\n"
-            self.command(irc_command)
-            with open(self.chatlog_raw, "at", encoding="utf-8") as file:
-                file.write(f"{datetime.utcnow()} | {irc_command}\n")
+            self.command(f"@reply-parent-msg-id={message_id} PRIVMSG {self.channel} :{message_body}\n")
 
             # Log the response
             log_msg = f"{datetime.utcnow()}: [{self.user}] {message_body}\n"
