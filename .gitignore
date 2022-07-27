@@ -14,3 +14,4 @@ bin
 !samples/run2
 *.data-00000-of-00001
 *chatlog*.txt
+irc_log.txt
