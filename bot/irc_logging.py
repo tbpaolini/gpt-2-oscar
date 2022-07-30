@@ -89,6 +89,8 @@ class IRCLogger():
     
     def receive(self):
         
+        empty_count = 0
+        
         while True:
             try:
                 # Wait for data from the server
@@ -102,7 +104,13 @@ class IRCLogger():
             for line in data.decode(encoding="utf-8").split("\r\n"):
                 
                 # Skip the line if it has no text
-                if not line.strip(): continue
+                if not line.strip():
+                    # Reconnect if received too many empty data
+                    empty_count += 1
+                    if (empty_count >= 5): self.connect()
+                    continue
+                else:
+                    empty_count = 0
                 
                 # Respond the server's PING message with a corresponding PONG
                 if line.startswith("PING "):
@@ -114,6 +122,9 @@ class IRCLogger():
                 # Append the raw IRC message to the log file
                 with open(self.chatlog, "at") as file:
                     file.write(f"{datetime.utcnow()} | {line}\n")
+                
+                # Reconnect the server needs to terminate the connections
+                if line == ":tmi.twitch.tv RECONNECT": self.connect()
 
 
 if __name__ == "__main__":
