@@ -204,6 +204,9 @@ class OscarBot():
                     print(log_msg, end="")
                     with open(self.chatlog, "at", encoding="utf-8") as chatlog_file:
                         chatlog_file.write(log_msg)
+                    
+                    # Print on the terminal the time when the bot's cooldown expires
+                    print(f"Next response: {self.last_reply_time + self.cooldown}", end="\r")
     
     def ai_response(self):
         """The AI responding the user's messages."""
@@ -232,6 +235,9 @@ class OscarBot():
             print(log_msg, end="")
             with open(self.chatlog, "at", encoding="utf-8") as chatlog_file:
                 chatlog_file.write(log_msg)
+            
+            # Print on the terminal the time when the bot's cooldown expires
+            print(f"Next response: {self.last_reply_time + self.cooldown}", end="\r")
     
     def clean_exit(self, *args):
         """Allows the program to exit when 'stop', 'quit', or 'exit' is entered on the terminal;"""
