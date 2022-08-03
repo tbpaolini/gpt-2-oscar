@@ -218,17 +218,17 @@ class OscarBot():
             message_body, message_id = response     # Get the response's contents and the ID of the message being replied to
 
             # Check if the response do not have any blocked words
+            message_body = post_process(message_body)
             if not is_okay(message_body):
                 # Log the blocked message
                 with open(self.chatlog_blocked, "at", encoding="utf-8") as file:
                     file.write(f"{datetime.utcnow()}: [{self.user}] {message_body}\n")
                 
                 # Replace the message with something funny, instead of saying something potentially offensive
-                message_body = "/me is washing his mouth with soap."
+                message_body = "I can't say what I just thought gopiraSmug"
             
             # Post the response to the chat
-            message_body = post_process(message_body)
-            self.command(f"@reply-parent-msg-id={message_id} PRIVMSG {self.channel} :{message_body}\n")
+            self.command(f"@reply-parent-msg-id={message_id} PRIVMSG {self.channel} :{message_body}")
 
             # Log the response
             log_msg = f"{datetime.utcnow()}: [{self.user}] {message_body}\n"
