@@ -1,3 +1,4 @@
+from __future__ import annotations
 from src.interactive_conditional_samples import interact_model, STOP
 from bot.text_process import post_process, pre_process
 from bot.filter import is_okay
@@ -7,7 +8,7 @@ import threading as td
 from time import sleep
 from datetime import datetime, timedelta
 from pathlib import Path
-from random import randint
+from random import randint, choice
 
 # Regular expression to get the message's username, ID, timestamp, and body
 MESSAGE_REGEX = re.compile(r"(?i)^.+?;display-name=(\w+).+?;id=([\w-]+);.+?;tmi-sent-ts=([\d]+);.+? PRIVMSG #\w+? :(.+)")
@@ -18,7 +19,8 @@ class OscarBot():
         self, server:str, port:int, user:str, password:str, channel:str,    # Login credentials
         chatlog:Path=Path("chatlog.txt"),   # Path to the log file
         min_wait:int=1800,  # Wait time (in seconds) for the bot replying without bein mentioned,
-        max_wait:int=2400   # the bot randomly choses a value between the min and max wait times.
+        max_wait:int=2400,  # the bot randomly choses a value between the min and max wait times.
+        streamavatars_wait_multiplier:int|float=2   # Multipliers to the above timers for the bot to interact through StreamAvatars (0 to disable)
     ):
         print("Starting OScar bot...")
         self.running = True
@@ -54,7 +56,6 @@ class OscarBot():
         output_thread.start()
 
         # Thread that takes the command for quitting the bot
-        self.workers = (model_process, input_thread, output_thread)
         exit_listener  = td.Thread(target=self.clean_exit)
         exit_listener.start()
 
@@ -70,6 +71,15 @@ class OscarBot():
         # Keep track of when was the bot's last reply
         # (the value of datetime.min means that the bot has not replied yet)
         self.last_reply_time = datetime.min
+
+        # Interaction with the StreamAvatars' ferrets
+        self.streamavatars_wait_multiplier = streamavatars_wait_multiplier
+        self.duel = False   # If the bot is being challenged to a duel
+        streamavatars_thread = td.Thread(target=self.streamavatars_interact)
+        streamavatars_thread.start()
+        
+        # The process and threads started by this script
+        self.workers = (model_process, input_thread, output_thread, streamavatars_thread)
 
         # Close the bot if authentication failed
         if self.auth_failed: self.close()
@@ -181,6 +191,11 @@ class OscarBot():
                     # Parse the message's contents
                     username, message_id, message_timestamp, message_body = text_match.groups()
 
+                    # Check if the bot was challenged to a duel
+                    if ("!duel" in message_body) and (self.user.lower() in message_body.lower()):
+                        self.duel = True
+                        continue
+
                     # Check how long ago the bot has last replied
                     last_reply_age = datetime.utcnow() - self.last_reply_time
 
@@ -239,6 +254,55 @@ class OscarBot():
             # Print on the terminal the time when the bot's cooldown expires
             print(f"Next response: {self.last_reply_time + self.cooldown}", end="\r")
     
+    def streamavatars_interact(self):
+        """Every now and then, send some random StreamAvatars commands to interact with other users."""
+        
+        if (self.streamavatars_wait_multiplier <= 0): return
+        
+        # Minimum and maximum wait times between the StreamAvatars commands
+        sv_min_wait = int(self.min_wait * self.streamavatars_wait_multiplier)
+        sv_max_wait = int(self.max_wait * self.streamavatars_wait_multiplier)
+
+        # Safeguard so the bot does not accidentally gets set up to a very low cooldown time
+        if (sv_min_wait < 300): return
+        
+        # Commands the bot can use
+        sv_commands = (
+            "!duel random",
+            "!attack random",
+            "!hug random"
+        )
+        
+        # Time to wait between commands (chosen randomly between the min and max wait times)
+        sv_command_cooldown = timedelta(seconds=randint(sv_min_wait, sv_max_wait))
+        sv_last_command = datetime.utcnow()
+
+        sv_last_duel_time = datetime.min
+        sv_duel_cooldown = timedelta(seconds=30.0)
+
+        # Send the commands after the cooldown time has elapsed
+        while self.running:
+            
+            # Random commands (hug, attack, duel)
+            sv_last_command_age = datetime.utcnow() - sv_last_command
+            if (sv_last_command_age > sv_command_cooldown):
+                sv_command = choice(sv_commands)
+                self.command(f"PRIVMSG {self.channel} :{sv_command}")
+                sv_command_cooldown = timedelta(seconds=randint(sv_min_wait, sv_max_wait))
+                sv_last_command = datetime.utcnow()
+            
+            # Accept an incoming duel
+            if self.duel:
+                self.duel = False
+                last_duel_age = datetime.utcnow() - sv_last_duel_time
+                if (last_duel_age > sv_duel_cooldown):
+                    sleep(1.5)  # Give the StreamAvatars some time to process the duel request on its side
+                    self.command(f"PRIVMSG {self.channel} :!accept")
+                    sv_last_duel_time = datetime.utcnow()
+
+            # Wait a second before checking again for more commands
+            sleep(1.0)
+    
     def clean_exit(self, *args):
         """Allows the program to exit when 'stop', 'quit', or 'exit' is entered on the terminal;"""
         while self.running:
@@ -264,7 +328,7 @@ class OscarBot():
         while self.workers is None: sleep(0.1)
         
         # Give some time to the process to end by itself
-        sleep(0.2)
+        sleep(1.0)
 
         # Terminate the process if it is still running
         if self.workers[0].is_alive(): self.workers[0].terminate()
