@@ -77,6 +77,11 @@ class OscarBot():
         self.duel = False   # If the bot is being challenged to a duel
         streamavatars_thread = td.Thread(target=self.streamavatars_interact)
         streamavatars_thread.start()
+        self.ignored_messages = (
+            "Has Challenged @oscar__bot To A Duel ",
+            "@oscar__bot has accepted the duel against",
+            "Congratulations to @oscar__bot for winning the duel!"
+        )
         
         # The process and threads started by this script
         self.workers = (model_process, input_thread, output_thread, streamavatars_thread)
@@ -195,6 +200,14 @@ class OscarBot():
                     if ("!duel" in message_body) and (self.user.lower() in message_body.lower()):
                         self.duel = True
                         continue
+
+                    # Do not respond to the automatic duel messages
+                    ignore = False
+                    for ignored in self.ignored_messages:
+                        if ignored in message_body:
+                            ignore = True
+                            break
+                    if (ignore): continue
 
                     # Check how long ago the bot has last replied
                     last_reply_age = datetime.utcnow() - self.last_reply_time
