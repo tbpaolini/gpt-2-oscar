@@ -77,10 +77,14 @@ class OscarBot():
         self.duel = False   # If the bot is being challenged to a duel
         streamavatars_thread = td.Thread(target=self.streamavatars_interact)
         streamavatars_thread.start()
+        
+        # Ignore the duel messages of StreamAvatars
         self.ignored_messages = (
-            "Has Challenged @oscar__bot To A Duel ",
-            "@oscar__bot has accepted the duel against",
-            "Congratulations to @oscar__bot for winning the duel!"
+            f"Has Challenged @{self.user} To A Duel ",
+            f"@{self.user} has accepted the duel against",
+            f"Congratulations to @{self.user} for winning the duel!",
+            f"@{self.user} Has Challenged",
+            f"has accepted the duel against @{self.user}"
         )
         
         # The process and threads started by this script
