@@ -296,6 +296,11 @@ class OscarBot():
         # Send the commands after the cooldown time has elapsed
         while self.running:
             
+            # The bot only sends commands if the chat is active
+            if (datetime.utcnow() - self.last_reply_time) > self.cooldown:
+                sleep(60.0)
+                continue
+            
             # Random commands (hug, attack, duel)
             sv_last_command_age = datetime.utcnow() - sv_last_command
             if (sv_last_command_age > sv_command_cooldown):
