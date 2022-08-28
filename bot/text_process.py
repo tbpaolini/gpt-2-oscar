@@ -4,6 +4,8 @@ RESPONSE_REGEX = re.compile(r"(?s)[A-Z].+[.!?\n]")
 TAGS_REGEX = re.compile(r"<.+?>")
 SPACES_REGEX = re.compile(r"\s{2,}")
 NEWLINE_REGEX = re.compile(r"(\w)\n")
+INNER_DOT_REGEX = re.compile(r"(?i)([A-Z])(\.)([A-Z])")
+HTTP_REGEX = re.compile(r"(?i)https?://")
 
 def pre_process(text:str) -> str:
     """Filters the message before submitting it to the AI to respond."""
@@ -20,6 +22,13 @@ def post_process(text_input:str) -> str:
     #  and ends at a dot, exclamation, or question mark.)
     text_match = RESPONSE_REGEX.search(text_input)
     text_output = text_match[0] if text_match is not None else text_input
+
+    # Add a space after a dot between letters
+    # (prevents bot from posting links)
+    text_output = INNER_DOT_REGEX.sub(r"\g<1>\g<2> \g<3>", text_output)
+
+    # Remove 'https://' and 'http://'
+    text_output = HTTP_REGEX.sub("", text_output)
 
     # Remove line breaks and extraneous spaces
     text_output = TAGS_REGEX.sub("", text_output)           # Remove XML tags that somehow ended in the output
