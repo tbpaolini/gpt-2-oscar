@@ -294,8 +294,9 @@ class OscarBot():
         sv_command_cooldown = timedelta(seconds=randint(sv_min_wait, sv_max_wait))
         sv_last_command = datetime.utcnow()
 
+        # Safeguard for the bot to not spam "!accept" messages
         sv_last_duel_time = datetime.min
-        sv_duel_cooldown = timedelta(seconds=30.0)
+        sv_duel_cooldown = timedelta(seconds=5.0)
 
         # Send the commands after the cooldown time has elapsed
         while self.running:
