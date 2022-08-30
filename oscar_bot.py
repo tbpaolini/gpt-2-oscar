@@ -75,16 +75,20 @@ class OscarBot():
         # Interaction with the StreamAvatars' ferrets
         self.streamavatars_wait_multiplier = streamavatars_wait_multiplier
         self.duel = False   # If the bot is being challenged to a duel
+        self.duel_last_user = "random"
         streamavatars_thread = td.Thread(target=self.streamavatars_interact)
         streamavatars_thread.start()
         
         # Ignore the duel messages of StreamAvatars
         self.ignored_messages = (
             f"Has Challenged @{self.user} To A Duel ",
+            f"@{self.user} Has Challenged @",
             f"@{self.user} has accepted the duel against",
             f"Congratulations to @{self.user} for winning the duel!",
             f"@{self.user} Has Challenged",
-            f"has accepted the duel against @{self.user}"
+            f"has accepted the duel against @{self.user}",
+            f"@{self.user} has declined the duel",
+            f"Could not find target {self.user}"
         )
         
         # The process and threads started by this script
@@ -203,6 +207,14 @@ class OscarBot():
                     # Check if the bot was challenged to a duel
                     if ("!duel" in message_body) and (self.user.lower() in message_body.lower()):
                         self.duel = True
+                        self.duel_last_user = username
+                        continue
+
+                    # Send a duel request back if StreamAvatars failed to find this bot
+                    # (that might happen if the bot did not send a message in a while)
+                    if (f"Could not find target {self.user}" == message_body) and (username.lower() == self.channel[1:].lower()):
+                        self.duel = False
+                        self.command(f"PRIVMSG {self.channel} :!duel {self.duel_last_user}")
                         continue
 
                     # Do not respond to the automatic duel messages
