@@ -7,7 +7,12 @@ import fire
 import json
 import os
 import numpy as np
+os.environ["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"] = "python"
 import tensorflow._api.v2.compat.v1 as tf
+# Note: The PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION environment variable needs
+# to be set because the Google API module and Tensorflow require conflicting
+# versions of the Protobuf module. This variable makes Tensorflow to use a
+# different approach that does not use Protobuf.
 
 import model, sample, encoder
 
