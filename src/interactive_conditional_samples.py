@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from urllib import response
 import fire
 import json
 import os
@@ -22,7 +21,8 @@ import multiprocessing as mp
 The model will be run in a separate process. It will use an input queue to get
 messages, and an output queue to place its responses.
 
-The itens of the queues is a tuple of two elements:
+The itens of the queues is a tuple of three elements:
+    - the name of the platform where the message came from
     - the message itself as a string (index 0)
     - an arbitrary integer number to match the input with the output (index 1)
 
