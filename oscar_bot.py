@@ -10,6 +10,11 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from random import randint, choice
 
+# Google API (for interacting with YouTube)
+import google_auth_oauthlib.flow
+import googleapiclient.discovery
+import googleapiclient.errors
+
 # Regular expression to get the message's username, ID, timestamp, and body
 MESSAGE_REGEX = re.compile(r"(?i)^.+?;display-name=(\w+).+?;id=([\w-]+);.+?;tmi-sent-ts=([\d]+);.+? PRIVMSG #\w+? :(.+)")
 
@@ -169,6 +174,29 @@ class OscarBot():
                 sleep(wait_time)
                 continue
 
+    def connect_youtube(self):
+        """Authenticate on YouTube through the Google API."""
+
+        scopes = ["https://www.googleapis.com/auth/youtube.force-ssl"]
+        api_service_name = "youtube"
+        api_version = "v3"
+        client_secrets_file = "google_client_secrets.json"
+
+        # Get credentials and create an API client
+        # (this is going to ask for the user to manually login on YouTube with the bot account)
+        flow = google_auth_oauthlib.flow.InstalledAppFlow.from_client_secrets_file(
+            client_secrets_file,
+            scopes
+        )
+        credentials = flow.run_console()
+        
+        # YouTube API client for the bot
+        self.youtube = googleapiclient.discovery.build(
+            api_service_name,
+            api_version,
+            credentials=credentials
+        )
+    
     def get_messages(self):
         """Keep listening for messages until the program is closed."""
 
