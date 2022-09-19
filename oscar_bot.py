@@ -13,6 +13,10 @@ from random import randint, choice
 # Regular expression to get the message's username, ID, timestamp, and body
 MESSAGE_REGEX = re.compile(r"(?i)^.+?;display-name=(\w+).+?;id=([\w-]+);.+?;tmi-sent-ts=([\d]+);.+? PRIVMSG #\w+? :(.+)")
 
+# "Macros" for which platforms the bot is interacting with
+TWITCH  = "twitch"
+YOUTUBE = "youtube"
+
 class OscarBot():
     
     def __init__(
@@ -236,7 +240,7 @@ class OscarBot():
                     
                     # Queue the message to be answered by the bot
                     message_body = pre_process(message_body)
-                    self.input_queue.put_nowait((message_body, message_id))
+                    self.input_queue.put_nowait((TWITCH, message_body, message_id))
 
                     # Reset the cooldown time
                     self.last_reply_time = datetime.utcnow()
@@ -259,7 +263,7 @@ class OscarBot():
         while self.running:
             response = self.output_queue.get()      # Wait for a new item at the output queue
             if response == STOP: break              # Exit if got the STOP signal
-            message_body, message_id = response     # Get the response's contents and the ID of the message being replied to
+            platform, message_body, message_id = response   # Get the response's contents and the ID of the message being replied to
 
             # Check if the response do not have any blocked words
             message_body = post_process(message_body)

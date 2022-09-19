@@ -97,7 +97,7 @@ def interact_model(
             if next_item == STOP:
                 output_queue.put(STOP, block=False)
                 break
-            raw_text, response_id = next_item
+            platform, raw_text, response_id = next_item
             context_tokens = enc.encode(raw_text)
             for _ in range(nsamples // batch_size):
                 out = sess.run(output, feed_dict={
@@ -105,7 +105,7 @@ def interact_model(
                 })[:, len(context_tokens):]
                 for i in range(batch_size):
                     text = enc.decode(out[i])
-                    output_queue.put((text, response_id), block=False)
+                    output_queue.put((platform, text, response_id), block=False)
 
 if __name__ == '__main__':
     fire.Fire(interact_model)
