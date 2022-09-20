@@ -26,6 +26,7 @@ class OscarBot():
     
     def __init__(
         self, server:str, port:int, user:str, password:str, channel:str,    # Login credentials
+        youtube_channel_id:str=None,    # ID of the YouTube channel where the bot will post (None to disable connection to YouTube)
         chatlog:Path=Path("chatlog.txt"),   # Path to the log file
         min_wait:int=1800,  # Wait time (in seconds) for the bot replying without bein mentioned,
         max_wait:int=2400,  # the bot randomly choses a value between the min and max wait times.
@@ -34,6 +35,16 @@ class OscarBot():
         print("Starting OScar bot...")
         self.running = True
         self.workers = None
+
+        # Connecting to YouTube
+        self.youtube = None                         # YouTube API client for making requests
+        self.youtube_channel = youtube_channel_id   # ID of the channel where the bot will be active
+        if self.youtube_channel is not None:
+            self.connect_youtube()  # Authenticate on the YouTube API
+            input_thread_youtube = td.Thread(target=self.get_youtube_messages)  # Listen for chat messages
+            input_thread_youtube.start()
+        else:
+            input_thread_youtube = None
         
         # Starting the AI model
         self.input_queue = mp.Queue()   # The messages the bot need to answer
@@ -59,8 +70,8 @@ class OscarBot():
 
         # Separate threads for getting and sending messages
         # (because it is necessary to wait for input/output)
-        input_thread = td.Thread(target=self.get_messages)
-        input_thread.start()
+        input_thread_twitch = td.Thread(target=self.get_messages)
+        input_thread_twitch.start()
         output_thread = td.Thread(target=self.ai_response)
         output_thread.start()
 
@@ -101,7 +112,7 @@ class OscarBot():
         )
         
         # The process and threads started by this script
-        self.workers = (model_process, input_thread, output_thread, streamavatars_thread)
+        self.workers = (model_process, input_thread_twitch, input_thread_youtube, output_thread, streamavatars_thread)
 
         # Close the bot if authentication failed
         if self.auth_failed: self.close()
@@ -284,6 +295,69 @@ class OscarBot():
                     # Print on the terminal the time when the bot's cooldown expires
                     print(f"Next response: {self.last_reply_time + self.cooldown}", end="\r")
     
+    def get_youtube_messages(self):
+        """Keep listening for chat messages on YouTube until the program is closed"""
+
+        # Whether the channel is currently streaming
+        is_streaming = False
+        
+        # ID of the channel's live chat (this ID changes for each stream)
+        chat_id = None
+
+        # When to check if the channel is streaming
+        next_check = datetime.utcnow()
+
+        # Listen for chat messages if the channel is currently streaming
+        while self.running:
+            # Note: We are going to wait 20 minutes between checks for live streams because they
+            #       use a lot of of quota points (100 points, from a daily limit of 10000 points).
+            #       This happens because there isn't a straighfoward way on the YouTube API to
+            #       check if someone else is streaming. We need to perform a search, then
+            #       filter by live videos and the channel ID. And searches are an expensive
+            #       operation in the YouTube API.
+            wait_time = timedelta(minutes=20)
+            
+            # Check if the channel is currently streaming
+            while self.running:
+                
+                # Is it the time to check if the channel is streaming?
+                if datetime.utcnow() >= next_check:
+                    
+                    # Time for checking again if the channel is streaming
+                    next_check = datetime.utcnow() + wait_time
+                    
+                    # Search for live videos of the channel (results sorted by date, descending)
+                    search_request = self.youtube.search().list(
+                        part="id",
+                        channelId=self.youtube_channel,
+                        eventType="live",
+                        maxResults=1,
+                        order="date",
+                        type="video"
+                    )
+                    search_results = search_request.execute()
+                    
+                    # If there are any results, then the channel is streaming
+                    if (search_results["pageInfo"]["totalResults"] > 0):
+                        is_streaming = True
+                        stream_id = search_results["items"][0]["id"]["videoId"]
+
+                        # Get the ID of the stream's live chat
+                        stream_id_request = self.youtube.videos().list(
+                            part="liveStreamingDetails",
+                            id=stream_id
+                        )
+                        stream_id_results = stream_id_request.execute()
+                        chat_id = stream_id_results["items"][0]["liveStreamingDetails"]["activeLiveChatId"]
+
+                        # Break from the loop if the channel is streaming
+                        break
+                
+                # Wait one second before restarting the loop
+                sleep(1.0)
+            
+            # Listen for chat messages
+    
     def ai_response(self):
         """The AI responding the user's messages."""
 
@@ -402,7 +476,7 @@ class OscarBot():
         
         # Join the processes and threads 
         for worker in self.workers:
-            worker.join()
+            if worker is not None: worker.join()
         
         # This "error message" is here because the clean_exit() thread might block the exit while waiting for input
         # Pressing ENTER give it an input so it no longer blocks
@@ -416,4 +490,5 @@ if __name__ == "__main__":
         user = "oscar__bot",
         password = os.getenv("TWITCH_KEY"),
         channel = "#piratesoftware",
+        youtube_channel_id = "UCMnULQ6F6kLDAHxofDWIbrw"
     )
