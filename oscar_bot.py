@@ -39,6 +39,7 @@ class OscarBot():
         # Connecting to YouTube
         self.youtube = None                         # YouTube API client for making requests
         self.youtube_channel = youtube_channel_id   # ID of the channel where the bot will be active
+        self.chatlog_youtube = chatlog.with_stem(chatlog.stem + "-youtube")
         if self.youtube_channel is not None:
             self.connect_youtube()  # Authenticate on the YouTube API
             input_thread_youtube = td.Thread(target=self.get_youtube_messages)  # Listen for chat messages
@@ -357,6 +358,80 @@ class OscarBot():
                 sleep(1.0)
             
             # Listen for chat messages
+            # Listening for chat messages
+            next_reply_time = datetime.utcnow()
+            
+            # Retrieve the first batch of chat messages
+            messages_request = self.youtube.liveChatMessages().list(
+                liveChatId=chat_id,
+                part="snippet"
+            )
+            try:
+                messages_results = messages_request.execute()
+            except googleapiclient.errors.HttpError:
+                # The request raises an error if the stream has ended
+                is_streaming = False
+
+            # Dictionaries to associate the ID's of the messages with their respective contents and author
+            chat_messages = {}  # Content of the messages
+            chat_authors  = {}  # Authors of the messages
+            
+            # Keep retrieving the next messages
+            while self.running and is_streaming:
+                
+                # Parse the previously retrieved messages
+                # (associate the author's ID with their message)
+                for message in messages_results["items"]:
+                    try:
+                        message_body = message["snippet"]["displayMessage"]
+                    except KeyError:
+                        # Skip the message if it has not a text body
+                        # (that might be the case of event messages)
+                        continue
+                    author_id = message["snippet"]["authorChannelId"]
+                    chat_messages[author_id] = message_body
+                
+                # Get the name of the author of each message
+                authors_request = self.youtube.channels().list(
+                    part="snippet",
+                    id=",".join(author for author in chat_messages),
+                    maxResults=len(chat_messages)
+                )
+                authors_results = authors_request.execute()
+
+                # Process the received messages
+                if "items" in authors_results:
+                    # Associate the author's ID with their name
+                    for author in authors_results["items"]:
+                        chat_authors[author["id"]] = author["snippet"]["title"]
+                    
+                    # Log the message to file
+                    for author_id, message_body in chat_messages.items():
+                        with open(self.chatlog_youtube, "at", encoding="utf-8") as youtube_log:
+                            youtube_log.write(f"{datetime.utcnow()}: [{chat_authors[author_id]}] {message_body}\n")
+                    
+                    # Check if the message needs to be replied by the bot
+                    # TO DO
+                
+                # Clear the dictionaries for the next loop
+                chat_messages.clear()
+                chat_authors.clear()
+
+                # Wait some time before retrieving the next messages
+                # (the API's response tells how long to wait)
+                sleep(messages_results["pollingIntervalMillis"] / 1000)
+                
+                # Retrieve the next batch of messages
+                messages_request = self.youtube.liveChatMessages().list(
+                    liveChatId=chat_id,
+                    part="snippet",
+                    pageToken=messages_results["nextPageToken"]
+                )
+                try:
+                    messages_results = messages_request.execute()
+                except googleapiclient.errors.HttpError:
+                    # The request raises an error if the stream has ended
+                    is_streaming = False
     
     def ai_response(self):
         """The AI responding the user's messages."""
