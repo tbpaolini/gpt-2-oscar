@@ -421,7 +421,7 @@ class OscarBot():
             
             # The bot only sends commands if the chat is active
             if (datetime.utcnow() - self.last_reply_time) > self.cooldown:
-                sleep(60.0)
+                sleep(5.0)
                 continue
             
             # Random commands (hug, attack, duel)
