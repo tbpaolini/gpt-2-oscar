@@ -6,10 +6,15 @@ SPACES_REGEX = re.compile(r"\s{2,}")
 NEWLINE_REGEX = re.compile(r"(\w)\n")
 INNER_DOT_REGEX = re.compile(r"(?i)([A-Z])(\.)([A-Z])")
 HTTP_REGEX = re.compile(r"(?i)https?://")
+USERNAME_REGEX = re.compile(r"(?i)@{0,1}oscar(?:_{0,2}bot| \[bot\])")
 
 def pre_process(text:str) -> str:
     """Filters the message before submitting it to the AI to respond."""
-    return text.replace("@OScar__bot", "OScar", 1)   # Remove the bot's username
+    
+    # Replace by the word "OScar" the mentions to the bot
+    text = USERNAME_REGEX.sub("OScar", text)
+
+    return text
 
 def post_process(text_input:str) -> str:
     """Filters the bot's response, so it begins and ends at a full sentence.
