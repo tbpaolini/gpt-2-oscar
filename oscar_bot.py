@@ -97,6 +97,7 @@ class OscarBot():
         # Keep track of when was the bot's last reply
         # (the value of datetime.min means that the bot has not replied yet)
         self.last_reply_time = datetime.min
+        self.next_youtube_reply = datetime.min
 
         # Interaction with the StreamAvatars' ferrets
         self.streamavatars_wait_multiplier = streamavatars_wait_multiplier
@@ -400,7 +401,7 @@ class OscarBot():
                 sleep(1.0)
             
             # Listening for chat messages
-            next_reply_time = datetime.utcnow()
+            self.next_youtube_reply = datetime.utcnow()
             
             # Retrieve the first batch of chat messages
             parsed_old_messages = False
@@ -475,12 +476,12 @@ class OscarBot():
                     # Note: The bot does not respond to messages posted before it went online.
                     #       It also ignores its own messages.
                     if (parsed_old_messages) \
-                        and (datetime.utcnow() >= next_reply_time or "oscar" in message_body.lower()) \
+                        and (datetime.utcnow() >= self.next_youtube_reply or "oscar" in message_body.lower()) \
                         and (author_id != self.my_youtube_id):
                         
                         # Reset the cooldown for the next bot's response
                         cooldown = randint(self.min_wait, self.max_wait)
-                        next_reply_time = datetime.utcnow() + timedelta(seconds=cooldown)
+                        self.next_youtube_reply = datetime.utcnow() + timedelta(seconds=cooldown)
                         
                         # Enqueue the message to be answered
                         message_body = pre_process(message_body)
@@ -493,7 +494,7 @@ class OscarBot():
                             chatlog_file.write(log_msg)
                         
                         # Print on the terminal the time when the bot's cooldown expires
-                        print(f"Next response: {next_reply_time}", end="\r")
+                        print(f"Next response: {self.next_youtube_reply}", end="\r")
                 
                 # Retrieve the next batch of messages
                 parsed_old_messages = True
@@ -606,7 +607,10 @@ class OscarBot():
                 chatlog_file.write(log_msg)
             
             # Print on the terminal the time when the bot's cooldown expires
-            print(f"Next response: {self.last_reply_time + self.cooldown}", end="\r")
+            if platform == TWITCH:
+                print(f"Next response: {self.last_reply_time + self.cooldown}", end="\r")
+            elif platform == YOUTUBE:
+                print(f"Next response: {self.next_youtube_reply}", end="\r")
     
     def streamavatars_interact(self):
         """Every now and then, send some random StreamAvatars commands to interact with other users."""
