@@ -39,6 +39,7 @@ class OscarBot():
         # Connecting to YouTube
         self.youtube = None                         # YouTube API client for making requests
         self.youtube_channel = youtube_channel_id   # ID of the channel where the bot will be active
+        self.youtube_chat_id = None                 # ID of the live chat of the YouTube stream (it changes every stream, so this ID is retrieved at runtime)
         self.chatlog_youtube = chatlog.with_stem(chatlog.stem + "-youtube")
         if self.youtube_channel is not None:
             self.connect_youtube()  # Authenticate on the YouTube API
@@ -303,7 +304,7 @@ class OscarBot():
         is_streaming = False
         
         # ID of the channel's live chat (this ID changes for each stream)
-        chat_id = None
+        self.youtube_chat_id = None
 
         # When to check if the channel is streaming
         next_check = datetime.utcnow()
@@ -349,7 +350,7 @@ class OscarBot():
                             id=stream_id
                         )
                         stream_id_results = stream_id_request.execute()
-                        chat_id = stream_id_results["items"][0]["liveStreamingDetails"]["activeLiveChatId"]
+                        self.youtube_chat_id = stream_id_results["items"][0]["liveStreamingDetails"]["activeLiveChatId"]
 
                         # Break from the loop if the channel is streaming
                         break
@@ -357,20 +358,21 @@ class OscarBot():
                 # Wait one second before restarting the loop
                 sleep(1.0)
             
-            # Listen for chat messages
             # Listening for chat messages
             next_reply_time = datetime.utcnow()
             
             # Retrieve the first batch of chat messages
-            messages_request = self.youtube.liveChatMessages().list(
-                liveChatId=chat_id,
-                part="snippet"
-            )
-            try:
-                messages_results = messages_request.execute()
-            except googleapiclient.errors.HttpError:
-                # The request raises an error if the stream has ended
-                is_streaming = False
+            parsed_old_messages = False
+            if is_streaming:
+                messages_request = self.youtube.liveChatMessages().list(
+                    liveChatId=self.youtube_chat_id,
+                    part="snippet"
+                )
+                try:
+                    messages_results = messages_request.execute()
+                except googleapiclient.errors.HttpError:
+                    # The request raises an error if the stream has ended
+                    is_streaming = False
 
             # Dictionaries to associate the ID's of the messages with their respective contents and author
             chat_messages = {}  # Content of the messages
@@ -410,8 +412,25 @@ class OscarBot():
                         with open(self.chatlog_youtube, "at", encoding="utf-8") as youtube_log:
                             youtube_log.write(f"{datetime.utcnow()}: [{chat_authors[author_id]}] {message_body}\n")
                     
-                    # Check if the message needs to be replied by the bot
-                    # TO DO
+                        # Check if the message needs to be replied by the bot
+                        if (parsed_old_messages) and (datetime.utcnow() >= next_reply_time or "oscar" in message_body.lower()):
+                            
+                            # Reset the cooldown for the next bot's response
+                            cooldown = randint(self.min_wait, self.max_wait)
+                            next_reply_time += timedelta(seconds=cooldown)
+                            
+                            # Enqueue the message to be answered
+                            message_body = pre_process(message_body)
+                            self.input_queue.put_nowait((YOUTUBE, message_body, chat_authors[author_id]))
+
+                            # Log the response
+                            log_msg = f"{datetime.utcnow()}: [{chat_authors[author_id]}] {message_body}\n"
+                            print(log_msg, end="")
+                            with open(self.chatlog, "at", encoding="utf-8") as chatlog_file:
+                                chatlog_file.write(log_msg)
+                            
+                            # Print on the terminal the time when the bot's cooldown expires
+                            print(f"Next response: {next_reply_time}", end="\r")
                 
                 # Clear the dictionaries for the next loop
                 chat_messages.clear()
@@ -422,16 +441,63 @@ class OscarBot():
                 sleep(messages_results["pollingIntervalMillis"] / 1000)
                 
                 # Retrieve the next batch of messages
-                messages_request = self.youtube.liveChatMessages().list(
-                    liveChatId=chat_id,
-                    part="snippet",
-                    pageToken=messages_results["nextPageToken"]
-                )
-                try:
-                    messages_results = messages_request.execute()
-                except googleapiclient.errors.HttpError:
-                    # The request raises an error if the stream has ended
-                    is_streaming = False
+                parsed_old_messages = True
+                while True:
+                    retry_count = 0
+                    messages_request = self.youtube.liveChatMessages().list(
+                        liveChatId=self.youtube_chat_id,
+                        part="snippet",
+                        pageToken=messages_results["nextPageToken"]
+                    )
+                    try:
+                        messages_results = messages_request.execute()
+                        break
+                    except googleapiclient.errors.HttpError:
+                        # The request raises an error if the stream has ended
+                        is_streaming = False
+                        break
+                    except TimeoutError:
+                        # Wait then retry if there was a timeout
+                        retry_count += 1
+                        if retry_count > 5: break
+                        sleep(2 ** retry_count)
+                    except KeyError:
+                        # Begin retrieving the chat again if there was no "nextPageToken"
+                        parsed_old_messages = False
+                        messages_request = self.youtube.liveChatMessages().list(
+                            liveChatId=self.youtube_chat_id,
+                            part="snippet",
+                        )
+                        try:
+                            messages_results = messages_request.execute()
+                        except (googleapiclient.errors.HttpError, TimeoutError):
+                            break
+    
+    def post_on_youtube_chat(self, message:str):
+        """Post a message on the YouTube chat"""
+
+        retry_count = 0
+        
+        while True:
+            bot_response = self.youtube.liveChatMessages().insert(
+                part="snippet",
+                body={
+                    "snippet": {
+                        "type": "textMessageEvent",
+                        "liveChatId": self.youtube_chat_id,
+                        "textMessageDetails": {
+                        "messageText": message
+                        }
+                    }
+                }
+            )
+            try:
+                bot_response.execute()
+            except (googleapiclient.errors.HttpError, TimeoutError):
+                retry_count += 1
+                if retry_count > 5: return
+                sleep(2 ** retry_count)
+            return
     
     def ai_response(self):
         """The AI responding the user's messages."""
@@ -453,7 +519,10 @@ class OscarBot():
                 message_body = "I can't say what I just thought gopiraSmug"
             
             # Post the response to the chat
-            self.command(f"@reply-parent-msg-id={message_id} PRIVMSG {self.channel} :{message_body}")
+            if platform == TWITCH:
+                self.command(f"@reply-parent-msg-id={message_id} PRIVMSG {self.channel} :{message_body}")
+            elif platform == YOUTUBE:
+                self.post_on_youtube_chat(f"@{message_id} {message_body}")
 
             # Log the response
             log_msg = f"{datetime.utcnow()}: [{self.user}] {message_body}\n"
