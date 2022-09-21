@@ -37,7 +37,9 @@ class OscarBot():
         self.workers = None
 
         # Connecting to YouTube
-        self.youtube = None                         # YouTube API client for making requests
+        self.youtube_chat_get = None                # YouTube API client for receiving chat messages
+        self.youtube_chat_send = None               # YouTube API client for posting on the chat
+        self.youtube_live_check = None              # YouTube API client for checking if the stream is live
         self.youtube_channel = youtube_channel_id   # ID of the channel where the bot will be active
         self.youtube_chat_id = None                 # ID of the live chat of the YouTube stream (it changes every stream, so this ID is retrieved at runtime)
         self.youtube_lock = td.Lock()               # Lock for thread synchronization because the Google API module is not thread safe
@@ -191,9 +193,33 @@ class OscarBot():
     def connect_youtube(self):
         """Authenticate on YouTube through the Google API."""
 
+        # Note: Since the daily quota of the YouTube API is too low to deal with
+        # live content, we are going to use 3 different API keys to get 3 quotas.
+        # One for checking if the stream is live, one for receiving chat messages,
+        # and another for sending chat messages.
+        #
+        # The API quota is 10000 points (daily). The usage is as follows:
+        #   - Checking if the channel is live: 100 points
+        #   - Checking for new chat messages: 5 points
+        #   - Checking for the usernames of the messages: 1 point (can request multiple usernames at once)
+        #   - Posting messages: 5 points (I am not sure of this value, other "insert" requests cost 50 points)
+        
+        # Set up the Google API parameters for using the YouTube Data API (version 3)
         scopes = ["https://www.googleapis.com/auth/youtube.force-ssl"]
         api_service_name = "youtube"
         api_version = "v3"
+        
+        # Authenticate for receiving chat messages
+        api_key_1 = os.getenv("YOUTUBE_KEY_1")
+        self.youtube_chat_get = googleapiclient.discovery.build(api_service_name, api_version, developerKey = api_key_1)
+        
+        # Authenticate for checking if the stream is live
+        api_key_2 = os.getenv("YOUTUBE_KEY_2")
+        self.youtube_live_check = googleapiclient.discovery.build(api_service_name, api_version, developerKey = api_key_2)
+        
+        # Authenticate for posting chat messages
+        # (since it requires to login with a specific user, here it will open a prompt
+        #  on the terminal that asks the user to visit a Google URL to login)
         client_secrets_file = "google_client_secrets.json"
 
         # Get credentials and create an API client
@@ -205,11 +231,13 @@ class OscarBot():
         credentials = flow.run_console()
         
         # YouTube API client for the bot
-        self.youtube = googleapiclient.discovery.build(
+        self.youtube_chat_send = googleapiclient.discovery.build(
             api_service_name,
             api_version,
             credentials=credentials
         )
+
+        print("Connected to YouTube.")
     
     def get_messages(self):
         """Keep listening for messages until the program is closed."""
@@ -312,13 +340,12 @@ class OscarBot():
 
         # Listen for chat messages if the channel is currently streaming
         while self.running:
-            # Note: We are going to wait 20 minutes between checks for live streams because they
+            # Note: We are going to wait 15 to 20 minutes between checks for live streams because they
             #       use a lot of of quota points (100 points, from a daily limit of 10000 points).
             #       This happens because there isn't a straighfoward way on the YouTube API to
             #       check if someone else is streaming. We need to perform a search, then
             #       filter by live videos and the channel ID. And searches are an expensive
             #       operation in the YouTube API.
-            wait_time = timedelta(minutes=20)
             
             # Check if the channel is currently streaming
             while self.running:
@@ -327,10 +354,11 @@ class OscarBot():
                 if datetime.utcnow() >= next_check:
                     
                     # Time for checking again if the channel is streaming
+                    wait_time = timedelta(seconds=randint(900, 1200))
                     next_check = datetime.utcnow() + wait_time
                     
                     # Search for live videos of the channel (results sorted by date, descending)
-                    search_request = self.youtube.search().list(
+                    search_request = self.youtube_live_check.search().list(
                         part="id",
                         channelId=self.youtube_channel,
                         eventType="live",
@@ -347,7 +375,7 @@ class OscarBot():
                         stream_id = search_results["items"][0]["id"]["videoId"]
 
                         # Get the ID of the stream's live chat
-                        stream_id_request = self.youtube.videos().list(
+                        stream_id_request = self.youtube_live_check.videos().list(
                             part="liveStreamingDetails",
                             id=stream_id
                         )
@@ -367,7 +395,7 @@ class OscarBot():
             # Retrieve the first batch of chat messages
             parsed_old_messages = False
             if is_streaming:
-                messages_request = self.youtube.liveChatMessages().list(
+                messages_request = self.youtube_chat_get.liveChatMessages().list(
                     liveChatId=self.youtube_chat_id,
                     part="snippet"
                 )
@@ -398,7 +426,7 @@ class OscarBot():
                     chat_messages[author_id] = message_body
                 
                 # Get the name of the author of each message
-                authors_request = self.youtube.channels().list(
+                authors_request = self.youtube_chat_get.channels().list(
                     part="snippet",
                     id=",".join(author for author in chat_messages),
                     maxResults=len(chat_messages)
@@ -442,14 +470,17 @@ class OscarBot():
                 chat_authors.clear()
 
                 # Wait some time before retrieving the next messages
-                # (the API's response tells how long to wait)
-                sleep(messages_results["pollingIntervalMillis"] / 1000)
+                # Note: The API's response tells how long to wait in the field "pollingIntervalMillis".
+                # That time usually is around 3 seconds. But if we use that time, we are going to run
+                # out of quota in 1h 40min. So we are going to wait for 15 seconds instead, so we can
+                # last for a little over 6h.
+                sleep(15)
                 
                 # Retrieve the next batch of messages
                 parsed_old_messages = True
                 while True:
                     retry_count = 0
-                    messages_request = self.youtube.liveChatMessages().list(
+                    messages_request = self.youtube_chat_get.liveChatMessages().list(
                         liveChatId=self.youtube_chat_id,
                         part="snippet",
                         pageToken=messages_results["nextPageToken"]
@@ -470,7 +501,7 @@ class OscarBot():
                     except KeyError:
                         # Begin retrieving the chat again if there was no "nextPageToken"
                         parsed_old_messages = False
-                        messages_request = self.youtube.liveChatMessages().list(
+                        messages_request = self.youtube_chat_get.liveChatMessages().list(
                             liveChatId=self.youtube_chat_id,
                             part="snippet",
                         )
@@ -486,7 +517,7 @@ class OscarBot():
         retry_count = 0
         
         while True:
-            bot_response = self.youtube.liveChatMessages().insert(
+            bot_response = self.youtube_chat_send.liveChatMessages().insert(
                 part="snippet",
                 body={
                     "snippet": {
