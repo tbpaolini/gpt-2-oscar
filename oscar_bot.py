@@ -42,6 +42,7 @@ class OscarBot():
         self.youtube_live_check = None              # YouTube API client for checking if the stream is live
         self.youtube_channel = youtube_channel_id   # ID of the channel where the bot will be active
         self.youtube_chat_id = None                 # ID of the live chat of the YouTube stream (it changes every stream, so this ID is retrieved at runtime)
+        self.my_youtube_id = None                   # YouTube User ID of the bot (the ID will be retrieved at runtime)
         self.youtube_lock = td.Lock()               # Lock for thread synchronization because the Google API module is not thread safe
         self.chatlog_youtube = chatlog.with_stem(chatlog.stem + "-youtube")
         if self.youtube_channel is not None:
@@ -237,6 +238,15 @@ class OscarBot():
             credentials=credentials
         )
 
+        # Get the YouTube user ID of the bot
+        request = self.youtube_chat_send.channels().list(
+            part="id",
+            mine=True
+        )
+        with self.youtube_lock:
+            response = request.execute()
+        self.my_youtube_id = response["items"][0]["id"]
+
         print("Connected to YouTube.")
     
     def get_messages(self):
@@ -406,79 +416,96 @@ class OscarBot():
                     # The request raises an error if the stream has ended
                     is_streaming = False
 
-            # Dictionaries to associate the ID's of the messages with their respective contents and author
-            chat_messages = {}  # Content of the messages
-            chat_authors  = {}  # Authors of the messages
+            # Dictionary to associate the ID's of the authors with their usernames
+            chat_authors = {}
             
             # Keep retrieving the next messages
             while self.running and is_streaming:
                 
-                # Parse the previously retrieved messages
-                # (associate the author's ID with their message)
+                # Get the ID's of the authors of the messages
+                # (only for those authors we didn't see yet)
+                new_author_ids = {
+                    message["snippet"]["authorChannelId"]
+                    for message in messages_results["items"]
+                    if message["snippet"]["authorChannelId"] not in chat_authors
+                }
+                
+                # Get the name of the authors of the messages
+                # (the bot performs no API request if there are no new authors)
+                if len(new_author_ids) > 0:
+                    authors_request = self.youtube_chat_get.channels().list(
+                        part="snippet",
+                        id=",".join(author for author in new_author_ids),
+                        maxResults=len(new_author_ids)
+                    )
+                    with self.youtube_lock:
+                        authors_results = authors_request.execute()
+                    
+                    # Add the usernames of the new authors to the dictionary
+                    if "items" in authors_results:
+                        new_author_names = {
+                            author["id"]: author["snippet"]["title"]
+                            for author in authors_results["items"]
+                        }
+                        chat_authors.update(new_author_names)
+
+                # Process the received chaat messages
                 for message in messages_results["items"]:
+                    
+                    # Get the message's text
                     try:
                         message_body = message["snippet"]["displayMessage"]
                     except KeyError:
                         # Skip the message if it has not a text body
                         # (that might be the case of event messages)
                         continue
+                    
+                    # Get the author's ID and username
                     author_id = message["snippet"]["authorChannelId"]
-                    chat_messages[author_id] = message_body
-                
-                # Get the name of the author of each message
-                authors_request = self.youtube_chat_get.channels().list(
-                    part="snippet",
-                    id=",".join(author for author in chat_messages),
-                    maxResults=len(chat_messages)
-                )
-                with self.youtube_lock:
-                    authors_results = authors_request.execute()
+                    author_name = chat_authors.get(author_id)
 
-                # Process the received messages
-                if "items" in authors_results:
-                    # Associate the author's ID with their name
-                    for author in authors_results["items"]:
-                        chat_authors[author["id"]] = author["snippet"]["title"]
+                    # Get the message's date and time
+                    message_datetime = message["snippet"]["publishedAt"]
                     
                     # Log the message to file
-                    for author_id, message_body in chat_messages.items():
-                        with open(self.chatlog_youtube, "at", encoding="utf-8") as youtube_log:
-                            youtube_log.write(f"{datetime.utcnow()}: [{chat_authors[author_id]}] {message_body}\n")
-                    
-                        # Check if the message needs to be replied by the bot
-                        if (parsed_old_messages) and (datetime.utcnow() >= next_reply_time or "oscar" in message_body.lower()):
-                            
-                            # Reset the cooldown for the next bot's response
-                            cooldown = randint(self.min_wait, self.max_wait)
-                            next_reply_time += timedelta(seconds=cooldown)
-                            
-                            # Enqueue the message to be answered
-                            message_body = pre_process(message_body)
-                            self.input_queue.put_nowait((YOUTUBE, message_body, chat_authors[author_id]))
-
-                            # Log the response
-                            log_msg = f"{datetime.utcnow()}: [{chat_authors[author_id]}] {message_body}\n"
-                            print(log_msg, end="")
-                            with open(self.chatlog, "at", encoding="utf-8") as chatlog_file:
-                                chatlog_file.write(log_msg)
-                            
-                            # Print on the terminal the time when the bot's cooldown expires
-                            print(f"Next response: {next_reply_time}", end="\r")
+                    with open(self.chatlog_youtube, "at", encoding="utf-8") as youtube_log:
+                        youtube_log.write(f"{message_datetime}: [{author_name}] {message_body}\n")
                 
-                # Clear the dictionaries for the next loop
-                chat_messages.clear()
-                chat_authors.clear()
+                    # Check if the message needs to be replied by the bot
+                    # Note: The bot does not respond to messages posted before it went online.
+                    #       It also ignores its own messages.
+                    if (parsed_old_messages) \
+                        and (datetime.utcnow() >= next_reply_time or "oscar" in message_body.lower()) \
+                        and (author_id != self.my_youtube_id):
+                        
+                        # Reset the cooldown for the next bot's response
+                        cooldown = randint(self.min_wait, self.max_wait)
+                        next_reply_time = datetime.utcnow() + timedelta(seconds=cooldown)
+                        
+                        # Enqueue the message to be answered
+                        message_body = pre_process(message_body)
+                        self.input_queue.put_nowait((YOUTUBE, message_body, author_name))
 
-                # Wait some time before retrieving the next messages
-                # Note: The API's response tells how long to wait in the field "pollingIntervalMillis".
-                # That time usually is around 3 seconds. But if we use that time, we are going to run
-                # out of quota in 1h 40min. So we are going to wait for 15 seconds instead, so we can
-                # last for a little over 6h.
-                sleep(15)
+                        # Log the response
+                        log_msg = f"{datetime.utcnow()}: [{author_name}] {message_body}\n"
+                        print(log_msg, end="")
+                        with open(self.chatlog, "at", encoding="utf-8") as chatlog_file:
+                            chatlog_file.write(log_msg)
+                        
+                        # Print on the terminal the time when the bot's cooldown expires
+                        print(f"Next response: {next_reply_time}", end="\r")
                 
                 # Retrieve the next batch of messages
                 parsed_old_messages = True
                 while True:
+
+                    # Wait some time before retrieving the next messages
+                    # Note: The API's response tells how long to wait in the field "pollingIntervalMillis".
+                    # That time usually is around 3 seconds. But if we use that time, we are going to run
+                    # out of quota in 1h 40min. So we are going to wait for 15 seconds instead, so we can
+                    # last for a little over 6h.
+                    sleep(15)
+                    
                     retry_count = 0
                     messages_request = self.youtube_chat_get.liveChatMessages().list(
                         liveChatId=self.youtube_chat_id,
@@ -489,15 +516,18 @@ class OscarBot():
                         with self.youtube_lock:
                             messages_results = messages_request.execute()
                         break
+                    
                     except googleapiclient.errors.HttpError:
                         # The request raises an error if the stream has ended
                         is_streaming = False
                         break
+                    
                     except TimeoutError:
                         # Wait then retry if there was a timeout
                         retry_count += 1
                         if retry_count > 5: break
                         sleep(2 ** retry_count)
+                    
                     except KeyError:
                         # Begin retrieving the chat again if there was no "nextPageToken"
                         parsed_old_messages = False
@@ -508,7 +538,10 @@ class OscarBot():
                         try:
                             with self.youtube_lock:
                                 messages_results = messages_request.execute()
-                        except (googleapiclient.errors.HttpError, TimeoutError):
+                        except googleapiclient.errors.HttpError:
+                            is_streaming = False
+                            break
+                        except TimeoutError:
                             break
     
     def post_on_youtube_chat(self, message:str):
@@ -561,7 +594,10 @@ class OscarBot():
             if platform == TWITCH:
                 self.command(f"@reply-parent-msg-id={message_id} PRIVMSG {self.channel} :{message_body}")
             elif platform == YOUTUBE:
-                self.post_on_youtube_chat(f"@{message_id} {message_body}")
+                if message_id is not None:
+                    self.post_on_youtube_chat(f"@{message_id} {message_body}")
+                else:
+                    self.post_on_youtube_chat(f"{message_body}")
 
             # Log the response
             log_msg = f"{datetime.utcnow()}: [{self.user}] {message_body}\n"
