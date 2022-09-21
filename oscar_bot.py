@@ -40,6 +40,7 @@ class OscarBot():
         self.youtube = None                         # YouTube API client for making requests
         self.youtube_channel = youtube_channel_id   # ID of the channel where the bot will be active
         self.youtube_chat_id = None                 # ID of the live chat of the YouTube stream (it changes every stream, so this ID is retrieved at runtime)
+        self.youtube_lock = td.Lock()               # Lock for thread synchronization because the Google API module is not thread safe
         self.chatlog_youtube = chatlog.with_stem(chatlog.stem + "-youtube")
         if self.youtube_channel is not None:
             self.connect_youtube()  # Authenticate on the YouTube API
@@ -337,7 +338,8 @@ class OscarBot():
                         order="date",
                         type="video"
                     )
-                    search_results = search_request.execute()
+                    with self.youtube_lock:
+                        search_results = search_request.execute()
                     
                     # If there are any results, then the channel is streaming
                     if (search_results["pageInfo"]["totalResults"] > 0):
@@ -349,7 +351,8 @@ class OscarBot():
                             part="liveStreamingDetails",
                             id=stream_id
                         )
-                        stream_id_results = stream_id_request.execute()
+                        with self.youtube_lock:
+                            stream_id_results = stream_id_request.execute()
                         self.youtube_chat_id = stream_id_results["items"][0]["liveStreamingDetails"]["activeLiveChatId"]
 
                         # Break from the loop if the channel is streaming
@@ -369,7 +372,8 @@ class OscarBot():
                     part="snippet"
                 )
                 try:
-                    messages_results = messages_request.execute()
+                    with self.youtube_lock:
+                        messages_results = messages_request.execute()
                 except googleapiclient.errors.HttpError:
                     # The request raises an error if the stream has ended
                     is_streaming = False
@@ -399,7 +403,8 @@ class OscarBot():
                     id=",".join(author for author in chat_messages),
                     maxResults=len(chat_messages)
                 )
-                authors_results = authors_request.execute()
+                with self.youtube_lock:
+                    authors_results = authors_request.execute()
 
                 # Process the received messages
                 if "items" in authors_results:
@@ -450,7 +455,8 @@ class OscarBot():
                         pageToken=messages_results["nextPageToken"]
                     )
                     try:
-                        messages_results = messages_request.execute()
+                        with self.youtube_lock:
+                            messages_results = messages_request.execute()
                         break
                     except googleapiclient.errors.HttpError:
                         # The request raises an error if the stream has ended
@@ -469,7 +475,8 @@ class OscarBot():
                             part="snippet",
                         )
                         try:
-                            messages_results = messages_request.execute()
+                            with self.youtube_lock:
+                                messages_results = messages_request.execute()
                         except (googleapiclient.errors.HttpError, TimeoutError):
                             break
     
@@ -492,7 +499,8 @@ class OscarBot():
                 }
             )
             try:
-                bot_response.execute()
+                with self.youtube_lock:
+                    bot_response.execute()
             except (googleapiclient.errors.HttpError, TimeoutError):
                 retry_count += 1
                 if retry_count > 5: return
