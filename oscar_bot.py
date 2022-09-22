@@ -2,7 +2,7 @@ from __future__ import annotations
 from src.interactive_conditional_samples import interact_model, STOP
 from bot.text_process import post_process, pre_process
 from bot.filter import is_okay
-import socket, ssl, os, re
+import socket, ssl, os, re, pickle
 import multiprocessing as mp
 import threading as td
 from time import sleep
@@ -222,22 +222,32 @@ class OscarBot():
         # Authenticate for posting chat messages
         # (since it requires to login with a specific user, here it will open a prompt
         #  on the terminal that asks the user to visit a Google URL to login)
-        client_secrets_file = "google_client_secrets.json"
+        self._saved_credentials = Path("auth.bin")
+        if not self._saved_credentials.exists():
+            client_secrets_file = "google_client_secrets.json"
 
-        # Get credentials and create an API client
-        # (this is going to ask for the user to manually login on YouTube with the bot account)
-        flow = google_auth_oauthlib.flow.InstalledAppFlow.from_client_secrets_file(
-            client_secrets_file,
-            scopes
-        )
-        credentials = flow.run_console()
+            # Get credentials and create an API client
+            # (this is going to ask for the user to manually login on YouTube with the bot account)
+            flow = google_auth_oauthlib.flow.InstalledAppFlow.from_client_secrets_file(
+                client_secrets_file,
+                scopes
+            )
+            credentials = flow.run_console()
+            
+            # YouTube API client for the bot
+            self.youtube_chat_send = googleapiclient.discovery.build(
+                api_service_name,
+                api_version,
+                credentials=credentials
+            )
+
+            # Cache the login info so it does not need to be entered again on bot's restart
+            self.cache_youtube_credentials()
         
-        # YouTube API client for the bot
-        self.youtube_chat_send = googleapiclient.discovery.build(
-            api_service_name,
-            api_version,
-            credentials=credentials
-        )
+        else:
+            # Load the credentials from file, if that file exists
+            with open(self._saved_credentials, "rb") as file:
+                self.youtube_chat_send = pickle.load(file)
 
         # Get the YouTube user ID of the bot
         request = self.youtube_chat_send.channels().list(
@@ -249,6 +259,17 @@ class OscarBot():
         self.my_youtube_id = response["items"][0]["id"]
 
         print("Connected to YouTube.")
+    
+    def cache_youtube_credentials(self):
+        """Save to file the YouTube credentials."""
+        
+        # Note: This is here for the case the bot needs to be restarted,
+        # so it is not necessary to do the whole login process every time.
+        # I am not sure for how long the file will be valid, I might need
+        # to rework this part once I know. For now deleting the "auth.bin"
+        # should be enough to force a new login.
+        with open(self._saved_credentials, "wb") as file:
+            pickle.dump(self.youtube_chat_send, file)
     
     def get_messages(self):
         """Keep listening for messages until the program is closed."""
@@ -570,6 +591,8 @@ class OscarBot():
                 retry_count += 1
                 if retry_count > 5: return
                 sleep(2 ** retry_count)
+            
+            self.cache_youtube_credentials()
             return
     
     def ai_response(self):
@@ -679,6 +702,9 @@ class OscarBot():
         
     def close(self):
         print("Shutting down bot...")
+        
+        # Cache the login info so it does not need to be entered again on bot's restart
+        self.cache_youtube_credentials()
         
         # Close the connection
         self.input_queue.put_nowait(STOP)

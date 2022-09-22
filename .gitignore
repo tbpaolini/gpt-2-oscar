@@ -16,3 +16,4 @@ bin
 *chatlog*.txt
 irc_log.txt
 google_client_secrets.json
+auth.bin
