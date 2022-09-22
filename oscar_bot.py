@@ -73,11 +73,11 @@ class OscarBot():
         self.password = password
         self.channel = channel
         self.auth_failed = False
-        self.connect()
+        self.connect_twitch()
 
         # Separate threads for getting and sending messages
         # (because it is necessary to wait for input/output)
-        input_thread_twitch = td.Thread(target=self.get_messages)
+        input_thread_twitch = td.Thread(target=self.get_twitch_messages)
         input_thread_twitch.start()
         output_thread = td.Thread(target=self.ai_response)
         output_thread.start()
@@ -126,7 +126,7 @@ class OscarBot():
         if self.auth_failed: self.close()
         exit_listener.join()
     
-    def command(self, command:str):
+    def twitch_command(self, command:str):
         """Sends a raw command to the IRC server."""
         
         retry_count = 0
@@ -138,10 +138,10 @@ class OscarBot():
             
             except (OSError, InterruptedError):
                 # Attempt reconnecting upon failue
-                self.connect()
+                self.connect_twitch()
                 retry_count += 1
     
-    def connect(self):
+    def connect_twitch(self):
         """Log in to the IRC server."""
 
         if not self.running: return
@@ -150,10 +150,10 @@ class OscarBot():
         while True:
             try:
                 self.ssl_sock.connect((self.server, self.port))     # Connect to the server
-                self.command(f"CAP REQ :twitch.tv/tags")        # Request Tags on the messages (allows the bot to get the message's ID)
-                self.command(f"PASS {self.password}")           # The OAuth token from Twitch
-                self.command(f"NICK {self.user}")               # The username of the bot
-                self.command(f"JOIN {self.channel}")            # The Twitch channel the bot is listening
+                self.twitch_command(f"CAP REQ :twitch.tv/tags")        # Request Tags on the messages (allows the bot to get the message's ID)
+                self.twitch_command(f"PASS {self.password}")           # The OAuth token from Twitch
+                self.twitch_command(f"NICK {self.user}")               # The username of the bot
+                self.twitch_command(f"JOIN {self.channel}")            # The Twitch channel the bot is listening
                 
                 # Check if the connection was successful, and print the server's response
                 server_response = self.ssl_sock.recv(2048).decode(encoding="utf-8").split("\r\n")
@@ -281,7 +281,7 @@ class OscarBot():
             file.write(f"\n{datetime.utcnow()}\n")
             pprint(response, stream=file)
     
-    def get_messages(self):
+    def get_twitch_messages(self):
         """Keep listening for messages until the program is closed."""
 
         empty_data = 0
@@ -291,14 +291,14 @@ class OscarBot():
             try:
                 data = self.ssl_sock.recv(2048)
             except (OSError, InterruptedError):
-                self.connect()
+                self.connect_twitch()
                 if self.auth_failed: self.close()
                 continue
 
             # If connection failed, the bot might keep receiving some empty packets
             if len(data) < 4:
                 empty_data += 1
-                if empty_data >= 5: self.connect()
+                if empty_data >= 5: self.connect_twitch()
             else:
                 empty_data = 0
 
@@ -308,7 +308,7 @@ class OscarBot():
                 # Respond the server's PING message with a corresponding PONG
                 if line.startswith("PING "):
                     pong_msg = line.replace("PING", "PONG", 1)
-                    self.command(pong_msg)
+                    self.twitch_command(pong_msg)
                     continue
                 
                 # Parse the message's content
@@ -330,7 +330,7 @@ class OscarBot():
                     # (that might happen if the bot did not send a message in a while)
                     if (f"Could not find target {self.user}" == message_body) and (username.lower() == self.channel[1:].lower()):
                         self.duel = False
-                        self.command(f"PRIVMSG {self.channel} :!duel {self.duel_last_user}")
+                        self.twitch_command(f"PRIVMSG {self.channel} :!duel {self.duel_last_user}")
                         continue
 
                     # Do not respond to the automatic duel messages
@@ -638,7 +638,7 @@ class OscarBot():
             
             # Post the response to the chat
             if platform == TWITCH:
-                self.command(f"@reply-parent-msg-id={message_id} PRIVMSG {self.channel} :{message_body}")
+                self.twitch_command(f"@reply-parent-msg-id={message_id} PRIVMSG {self.channel} :{message_body}")
             elif platform == YOUTUBE:
                 if message_id is not None:
                     self.post_on_youtube_chat(f"@{message_id} {message_body}")
@@ -696,7 +696,7 @@ class OscarBot():
             sv_last_command_age = datetime.utcnow() - sv_last_command
             if (sv_last_command_age > sv_command_cooldown):
                 sv_command = choice(sv_commands)
-                self.command(f"PRIVMSG {self.channel} :{sv_command}")
+                self.twitch_command(f"PRIVMSG {self.channel} :{sv_command}")
                 sv_command_cooldown = timedelta(seconds=randint(sv_min_wait, sv_max_wait))
                 sv_last_command = datetime.utcnow()
             
@@ -706,7 +706,7 @@ class OscarBot():
                 last_duel_age = datetime.utcnow() - sv_last_duel_time
                 if (last_duel_age > sv_duel_cooldown):
                     sleep(1.5)  # Give the StreamAvatars some time to process the duel request on its side
-                    self.command(f"PRIVMSG {self.channel} :!accept")
+                    self.twitch_command(f"PRIVMSG {self.channel} :!accept")
                     sv_last_duel_time = datetime.utcnow()
 
             # Wait a second before checking again for more commands
@@ -732,7 +732,7 @@ class OscarBot():
         self.input_queue.put_nowait(STOP)
         self.output_queue.put_nowait(STOP)
         self.running = False
-        if not self.auth_failed: self.command("QUIT")
+        if not self.auth_failed: self.twitch_command("QUIT")
         self.ssl_sock.shutdown(socket.SHUT_RDWR)
         self.ssl_sock.close()
 
