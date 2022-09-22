@@ -9,6 +9,7 @@ from time import sleep
 from datetime import datetime, timedelta
 from pathlib import Path
 from random import randint, choice
+from pprint import pprint
 
 # Google API (for interacting with YouTube)
 import google_auth_oauthlib.flow
@@ -248,6 +249,9 @@ class OscarBot():
             # Load the credentials from file, if that file exists
             with open(self._saved_credentials, "rb") as file:
                 self.youtube_chat_send = pickle.load(file)
+        
+        # File where it will be logged the raw responses received from the YouTube API
+        self._raw_youtube_log = Path("bot/yt_log.txt")
 
         # Get the YouTube user ID of the bot
         request = self.youtube_chat_send.channels().list(
@@ -257,6 +261,7 @@ class OscarBot():
         with self.youtube_lock:
             response = request.execute()
         self.my_youtube_id = response["items"][0]["id"]
+        self.raw_youtube_log(response)
 
         print("Connected to YouTube.")
     
@@ -270,6 +275,11 @@ class OscarBot():
         # should be enough to force a new login.
         with open(self._saved_credentials, "wb") as file:
             pickle.dump(self.youtube_chat_send, file)
+    
+    def raw_youtube_log(self, response:dict):
+        with open(self._raw_youtube_log, "at", encoding="utf-8") as file:
+            file.write(f"\n{datetime.utcnow()}\n")
+            pprint(response, stream=file)
     
     def get_messages(self):
         """Keep listening for messages until the program is closed."""
@@ -403,6 +413,11 @@ class OscarBot():
                     
                     # If there are any results, then the channel is streaming
                     if (search_results["pageInfo"]["totalResults"] > 0):
+                        
+                        # Log the raw search results
+                        self.raw_youtube_log(search_results)
+                        
+                        # Set the streaming flag to True and get the Stream ID
                         is_streaming = True
                         stream_id = search_results["items"][0]["id"]["videoId"]
 
@@ -413,6 +428,7 @@ class OscarBot():
                         )
                         with self.youtube_lock:
                             stream_id_results = stream_id_request.execute()
+                        self.raw_youtube_log(stream_id_results)
                         self.youtube_chat_id = stream_id_results["items"][0]["liveStreamingDetails"]["activeLiveChatId"]
 
                         # Break from the loop if the channel is streaming
@@ -443,6 +459,10 @@ class OscarBot():
             
             # Keep retrieving the next messages
             while self.running and is_streaming:
+                
+                # Log the raw messages to file (if there are any)
+                if messages_results["items"]:
+                    self.raw_youtube_log(messages_results)
                 
                 # Get the ID's of the authors of the messages
                 # (only for those authors we didn't see yet)
@@ -586,7 +606,9 @@ class OscarBot():
             )
             try:
                 with self.youtube_lock:
-                    bot_response.execute()
+                    chat_post = bot_response.execute()
+                self.raw_youtube_log(chat_post)
+            
             except (googleapiclient.errors.HttpError, TimeoutError):
                 retry_count += 1
                 if retry_count > 5: return
