@@ -348,12 +348,13 @@ class OscarBot():
                         continue
 
                     # Do not respond to the automatic duel messages
-                    ignore = False
-                    for ignored in self.ignored_messages:
-                        if ignored in message_body:
-                            ignore = True
-                            break
-                    if (ignore): continue
+                    if username.lower() == self.channel[1:].lower():
+                        ignore = False
+                        for ignored in self.ignored_messages:
+                            if ignored in message_body:
+                                ignore = True
+                                break
+                        if (ignore): continue
 
                     # Check how long ago the bot has last replied
                     last_reply_age = datetime.utcnow() - self.last_reply_time
