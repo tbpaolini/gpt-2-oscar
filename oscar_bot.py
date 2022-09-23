@@ -10,6 +10,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from random import randint, choice
 from pprint import pprint
+from traceback import print_exc
 
 # Google API (for interacting with YouTube)
 import google_auth_oauthlib.flow
@@ -253,6 +254,9 @@ class OscarBot():
         # File where it will be logged the raw responses received from the YouTube API
         self._raw_youtube_log = Path("bot/yt_log.txt")
 
+        # File where to log the errors raised by the YouTube API
+        self._youtube_error_log = Path("bot/yt_error.txt")
+
         # Get the YouTube user ID of the bot
         request = self.youtube_chat_send.channels().list(
             part="id",
@@ -282,6 +286,14 @@ class OscarBot():
         with open(self._raw_youtube_log, "at", encoding="utf-8") as file:
             file.write(f"\n{datetime.utcnow()}\n")
             pprint(response, stream=file)
+    
+    def youtube_error_log(self):
+        """Log the errors raised when making requests to the YouTube API."""
+
+        with open(self._youtube_error_log, "at", encoding="utf-8") as error_log:
+            error_log.write(f"{datetime.utcnow()}\n\n")
+            print_exc(file=error_log)
+            error_log.write("\n\n---------------\n")
     
     def get_twitch_messages(self):
         """Keep listening for messages until the program is closed."""
@@ -455,6 +467,7 @@ class OscarBot():
                 except googleapiclient.errors.HttpError:
                     # The request raises an error if the stream has ended
                     is_streaming = False
+                    self.youtube_error_log()
 
             # Dictionary to associate the ID's of the authors with their usernames
             chat_authors = {}
@@ -564,17 +577,20 @@ class OscarBot():
                     
                     except googleapiclient.errors.HttpError:
                         # The request raises an error if the stream has ended
+                        self.youtube_error_log()
                         is_streaming = False
                         break
                     
                     except TimeoutError:
                         # Wait then retry if there was a timeout
+                        self.youtube_error_log()
                         retry_count += 1
                         if retry_count > 5: break
                         sleep(2 ** retry_count)
                     
                     except KeyError:
                         # Begin retrieving the chat again if there was no "nextPageToken"
+                        self.youtube_error_log()
                         parsed_old_messages = False
                         messages_request = self.youtube_chat_get.liveChatMessages().list(
                             liveChatId=self.youtube_chat_id,
@@ -585,8 +601,10 @@ class OscarBot():
                                 messages_results = messages_request.execute()
                         except googleapiclient.errors.HttpError:
                             is_streaming = False
+                            self.youtube_error_log()
                             break
                         except TimeoutError:
+                            self.youtube_error_log()
                             break
     
     def post_on_youtube_chat(self, message:str):
@@ -613,6 +631,7 @@ class OscarBot():
                 self.raw_youtube_log(chat_post)
             
             except (googleapiclient.errors.HttpError, TimeoutError):
+                self.youtube_error_log()
                 retry_count += 1
                 if retry_count > 5: return
                 sleep(2 ** retry_count)
