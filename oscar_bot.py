@@ -537,7 +537,7 @@ class OscarBot():
                     if DUEL_REGEX.match(message_body) is not None:
                         self.duel = YOUTUBE
                         self.duel_last_user = author_name
-                        pass
+                        continue
 
                     # Check the duel messages from StreamAvatars
                     if author_id == self.youtube_channel:
