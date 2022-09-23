@@ -749,7 +749,10 @@ class OscarBot():
         print("Shutting down bot...")
         
         # Cache the login info so it does not need to be entered again on bot's restart
-        self.cache_youtube_credentials()
+        try:
+            self.cache_youtube_credentials()
+        except AttributeError:
+            pass
         
         # Close the connection
         self.input_queue.put_nowait(STOP)
