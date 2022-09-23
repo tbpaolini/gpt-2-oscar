@@ -277,6 +277,8 @@ class OscarBot():
             pickle.dump(self.youtube_chat_send, file)
     
     def raw_youtube_log(self, response:dict):
+        """Log the responses from the YouTube API."""
+        
         with open(self._raw_youtube_log, "at", encoding="utf-8") as file:
             file.write(f"\n{datetime.utcnow()}\n")
             pprint(response, stream=file)
