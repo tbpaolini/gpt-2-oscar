@@ -482,6 +482,7 @@ class OscarBot():
                     )
                     with self.youtube_lock:
                         authors_results = authors_request.execute()
+                    self.raw_youtube_log(authors_results)
                     
                     # Add the usernames of the new authors to the dictionary
                     if "items" in authors_results:
