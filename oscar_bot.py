@@ -72,7 +72,7 @@ class OscarBot():
         self.port = port
         self.user = user
         self.password = password
-        self.channel = channel
+        self.channel = channel.lower() if channel.startswith("#") else f"#{channel.lower()}"
         self.auth_failed = False
         self.connect_twitch()
 
@@ -110,14 +110,11 @@ class OscarBot():
         
         # Ignore the duel messages of StreamAvatars
         self.ignored_messages = (
-            f"Has Challenged @{self.user} To A Duel ",
-            f"@{self.user} Has Challenged @",
-            f"@{self.user} has accepted the duel against",
-            f"Congratulations to @{self.user} for winning the duel!",
-            f"@{self.user} Has Challenged",
-            f"has accepted the duel against @{self.user}",
-            f"@{self.user} has declined the duel",
-            f"Could not find target {self.user}"
+            "Has Challenged",
+            "has accepted the duel against",
+            "for winning the duel!",
+            "has declined the duel",
+            "Could not find target"
         )
         
         # The process and threads started by this script
@@ -336,19 +333,21 @@ class OscarBot():
 
                     # Check if the bot was challenged to a duel
                     if ("!duel" in message_body) and (self.user.lower() in message_body.lower()):
-                        self.duel = True
+                        self.duel = TWITCH
                         self.duel_last_user = username
                         continue
 
-                    # Send a duel request back if StreamAvatars failed to find this bot
-                    # (that might happen if the bot did not send a message in a while)
-                    if (f"Could not find target {self.user}" == message_body) and (username.lower() == self.channel[1:].lower()):
-                        self.duel = False
-                        self.twitch_command(f"PRIVMSG {self.channel} :!duel {self.duel_last_user}")
-                        continue
+                    # Check for duel messages from StreamAvatars
+                    if username.lower() == self.channel[1:]:
+                    
+                        # Send a duel request back if StreamAvatars failed to find this bot
+                        # (that might happen if the bot did not send a message in a while)
+                        if (f"Could not find target {self.user}" == message_body):
+                            self.duel = False
+                            self.twitch_command(f"PRIVMSG {self.channel} :!duel {self.duel_last_user}")
+                            continue
 
-                    # Do not respond to the automatic duel messages
-                    if username.lower() == self.channel[1:].lower():
+                        # Do not respond to the automatic duel messages
                         ignore = False
                         for ignored in self.ignored_messages:
                             if ignored in message_body:
@@ -394,6 +393,10 @@ class OscarBot():
 
         # When to check if the channel is streaming
         next_check = datetime.utcnow()
+
+        # Regular expressions for checking incoming duels
+        DUEL_REGEX = re.compile(r"(?i)^ *!duel +@{0,1}oscar")
+        FAIL_REGEX = re.compile(r"(?i)Could not find target @{0,1}OScar")
 
         # Listen for chat messages if the channel is currently streaming
         while self.running:
@@ -529,6 +532,29 @@ class OscarBot():
                     # Log the message to file
                     with open(self.chatlog_youtube, "at", encoding="utf-8") as youtube_log:
                         youtube_log.write(f"{message_datetime}: [{author_name}] {message_body}\n")
+                    
+                    # Handle incoming duels
+                    if DUEL_REGEX.match(message_body) is not None:
+                        self.duel = YOUTUBE
+                        self.duel_last_user = author_name
+                        pass
+
+                    # Check the duel messages from StreamAvatars
+                    if author_id == self.youtube_channel:
+                        
+                        # Resend a failed duel
+                        if FAIL_REGEX.match(message_body) is not None:
+                            self.duel = False
+                            self.post_on_youtube_chat(f"!duel {self.duel_last_user}")
+                            continue
+                        
+                        # Ignore the status messages
+                        ignore = False
+                        for ignored in self.ignored_messages:
+                            if ignored in message_body:
+                                ignore = True
+                                break
+                        if (ignore): continue
                 
                     # Check if the message needs to be replied by the bot
                     # Note: The bot does not respond to messages posted before it went online.
@@ -710,27 +736,40 @@ class OscarBot():
         # Send the commands after the cooldown time has elapsed
         while self.running:
             
+            # Current time (UTC)
+            now = datetime.utcnow()
+
+            # Check which chats are active
+            active_on_twitch = (now - self.last_reply_time) < self.cooldown
+            active_on_youtube = now < self.next_youtube_reply
+            
             # The bot only sends commands if the chat is active
-            if (datetime.utcnow() - self.last_reply_time) > self.cooldown:
+            if (not active_on_twitch) and (not active_on_youtube):
                 sleep(5.0)
                 continue
             
             # Random commands (hug, attack, duel)
-            sv_last_command_age = datetime.utcnow() - sv_last_command
+            sv_last_command_age = now - sv_last_command
             if (sv_last_command_age > sv_command_cooldown):
                 sv_command = choice(sv_commands)
-                self.twitch_command(f"PRIVMSG {self.channel} :{sv_command}")
+                if active_on_twitch:
+                    self.twitch_command(f"PRIVMSG {self.channel} :{sv_command}")
+                if active_on_youtube:
+                    self.post_on_youtube_chat(sv_command)
                 sv_command_cooldown = timedelta(seconds=randint(sv_min_wait, sv_max_wait))
                 sv_last_command = datetime.utcnow()
             
             # Accept an incoming duel
             if self.duel:
-                self.duel = False
-                last_duel_age = datetime.utcnow() - sv_last_duel_time
+                last_duel_age = now - sv_last_duel_time
                 if (last_duel_age > sv_duel_cooldown):
                     sleep(1.5)  # Give the StreamAvatars some time to process the duel request on its side
-                    self.twitch_command(f"PRIVMSG {self.channel} :!accept")
-                    sv_last_duel_time = datetime.utcnow()
+                    if self.duel == TWITCH:
+                        self.twitch_command(f"PRIVMSG {self.channel} :!accept")
+                    elif self.duel == YOUTUBE:
+                        self.post_on_youtube_chat("!accept")
+                    sv_last_duel_time = now
+                self.duel = False
 
             # Wait a second before checking again for more commands
             sleep(1.0)
