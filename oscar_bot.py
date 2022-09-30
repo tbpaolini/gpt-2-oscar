@@ -203,7 +203,7 @@ class OscarBot():
         #   - Checking if the channel is live: 100 points
         #   - Checking for new chat messages: 5 points
         #   - Checking for the usernames of the messages: 1 point (can request multiple usernames at once)
-        #   - Posting messages: 5 points (I am not sure of this value, other "insert" requests cost 50 points)
+        #   - Sending a chat message: 20 points
         
         # Set up the Google API parameters for using the YouTube Data API (version 3)
         scopes = ["https://www.googleapis.com/auth/youtube.force-ssl"]
