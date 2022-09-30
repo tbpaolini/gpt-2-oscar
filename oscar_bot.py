@@ -657,7 +657,7 @@ class OscarBot():
                     chat_post = bot_response.execute()
                 self.raw_youtube_log(chat_post)
             
-            except (googleapiclient.errors.HttpError, TimeoutError):
+            except (googleapiclient.errors.HttpError, TimeoutError, BrokenPipeError):
                 self.youtube_error_log()
                 retry_count += 1
                 if retry_count > 5: return
