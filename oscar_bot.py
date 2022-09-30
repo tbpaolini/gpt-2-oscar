@@ -647,7 +647,7 @@ class OscarBot():
                         "type": "textMessageEvent",
                         "liveChatId": self.youtube_chat_id,
                         "textMessageDetails": {
-                        "messageText": message
+                            "messageText": message
                         }
                     }
                 }
