@@ -499,9 +499,14 @@ class OscarBot():
                         id=",".join(author for author in new_author_ids),
                         maxResults=len(new_author_ids)
                     )
-                    with self.youtube_lock:
-                        authors_results = authors_request.execute()
-                    self.raw_youtube_log(authors_results)
+                    
+                    try:
+                        with self.youtube_lock:
+                            authors_results = authors_request.execute()
+                        self.raw_youtube_log(authors_results)
+                    except googleapiclient.errors.HttpError:
+                        authors_results = {}
+                        self.youtube_error_log()
                     
                     # Add the usernames of the new authors to the dictionary
                     if "items" in authors_results:
