@@ -296,6 +296,7 @@ class OscarBot():
         """Keep listening for messages until the program is closed."""
 
         empty_data = 0
+        self._twitch_last_seen_user = "random"  # Remember the last user (for StreamAvatars' interactions)
         while self.running:
             
             # Wait for data from the server
@@ -330,6 +331,7 @@ class OscarBot():
                     
                     # Parse the message's contents
                     username, message_id, message_timestamp, message_body = text_match.groups()
+                    self._twitch_last_seen_user = username
 
                     # Check if the bot was challenged to a duel
                     if ("!duel" in message_body) and (self.user.lower() in message_body.lower()):
@@ -397,6 +399,9 @@ class OscarBot():
         # Regular expressions for checking incoming duels
         DUEL_REGEX = re.compile(r"(?i)^ *!duel +@{0,1}oscar")
         FAIL_REGEX = re.compile(r"(?i)Could not find target @{0,1}OScar")
+
+        # The last seen user (to be used with StreamAvatars' interactions)
+        self._youtube_last_seen_user = "random"
 
         # Listen for chat messages if the channel is currently streaming
         while self.running:
@@ -540,6 +545,7 @@ class OscarBot():
                     # Get the author's ID and username
                     author_id = message["snippet"]["authorChannelId"]
                     author_name = chat_authors.get(author_id)
+                    self._youtube_last_seen_user = author_name
 
                     # Get the message's date and time
                     message_datetime = message["snippet"]["publishedAt"]
@@ -735,9 +741,9 @@ class OscarBot():
         
         # Commands the bot can use
         sv_commands = (
-            "!duel random",
-            "!attack random",
-            "!hug random"
+            "!duel",
+            "!attack",
+            "!hug"
         )
         
         # Time to wait between commands (chosen randomly between the min and max wait times)
@@ -768,9 +774,9 @@ class OscarBot():
             if (sv_last_command_age > sv_command_cooldown):
                 sv_command = choice(sv_commands)
                 if active_on_twitch:
-                    self.twitch_command(f"PRIVMSG {self.channel} :{sv_command}")
+                    self.twitch_command(f"PRIVMSG {self.channel} :{sv_command} {self._twitch_last_seen_user}")
                 if active_on_youtube:
-                    self.post_on_youtube_chat(sv_command)
+                    self.post_on_youtube_chat(f"{sv_command} {self._youtube_last_seen_user}")
                 sv_command_cooldown = timedelta(seconds=randint(sv_min_wait, sv_max_wait))
                 sv_last_command = datetime.utcnow()
             
