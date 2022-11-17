@@ -742,6 +742,8 @@ class OscarBot():
         # Commands the bot can use
         sv_commands = (
             "!duel",
+            "!dance",
+            "!fart",
             "!attack",
             "!hug"
         )
@@ -769,7 +771,7 @@ class OscarBot():
                 sleep(5.0)
                 continue
             
-            # Random commands (hug, attack, duel)
+            # Random commands (hug, attack, duel, dance, fart)
             sv_last_command_age = now - sv_last_command
             if (sv_last_command_age > sv_command_cooldown):
                 sv_command = choice(sv_commands)
