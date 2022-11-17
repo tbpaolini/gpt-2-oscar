@@ -7,7 +7,7 @@ NEWLINE_REGEX = re.compile(r"(\w)\n")
 INNER_DOT_REGEX = re.compile(r"(?i)([A-Z])(\.)([A-Z])")
 HTTP_REGEX = re.compile(r"(?i)https?://")
 USERNAME_REGEX = re.compile(r"(?i)@{0,1}oscar(?:_{0,2}bot| \[bot\])")
-LIST_REGEX = re.compile(r"([A-Z].*?:(?: [A-Z]{0,1})[^.\n]*?)(?:(?<!\.) )(?=[A-Z])")
+LIST_REGEX = re.compile(r"([A-Z].*?:(?: [A-Z]{0,1})[^\.:\n]*)(?:(?<!\.) )(?=[A-Z].*?:)")
 
 def pre_process(text:str) -> str:
     """Filters the message before submitting it to the AI to respond."""
