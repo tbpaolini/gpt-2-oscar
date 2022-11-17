@@ -629,7 +629,7 @@ class OscarBot():
                         is_streaming = False
                         break
                     
-                    except (TimeoutError, BrokenPipeError):
+                    except (socket.timeout, BrokenPipeError):
                         # Wait then retry if there was a timeout
                         self.youtube_error_log()
                         retry_count += 1
@@ -651,7 +651,7 @@ class OscarBot():
                             is_streaming = False
                             self.youtube_error_log()
                             break
-                        except (TimeoutError, BrokenPipeError):
+                        except (socket.timeout, BrokenPipeError):
                             self.youtube_error_log()
                             break
     
@@ -678,7 +678,7 @@ class OscarBot():
                     chat_post = bot_response.execute()
                 self.raw_youtube_log(chat_post)
             
-            except (googleapiclient.errors.HttpError, TimeoutError, BrokenPipeError):
+            except (googleapiclient.errors.HttpError, socket.timeout, BrokenPipeError):
                 self.youtube_error_log()
                 retry_count += 1
                 if retry_count > 5: return
