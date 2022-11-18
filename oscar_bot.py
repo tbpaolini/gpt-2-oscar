@@ -393,6 +393,9 @@ class OscarBot():
         # ID of the channel's live chat (this ID changes for each stream)
         self.youtube_chat_id = None
 
+        # Scheduled streams of the channel
+        scheduled_streams:dict[str,datetime] = {}
+
         # When to check if the channel is streaming
         next_check = datetime.utcnow()
 
@@ -415,19 +418,47 @@ class OscarBot():
             # Check if the channel is currently streaming
             while self.running:
                 
+                # This value increments by 1 on each YouTube search, from 0 to 3, then it starts again.
+                # When it is 3, we are going to check if there is a live stream scheduled.
+                # Otherwise, we are going to check if there is a live stream currently ongoing.
+                _cycle_count = 0
+
+                # Current time (UTC)
+                now = datetime.utcnow()
+
+                # Check if a scheduled stream is about to start
+                for chat_id, start_time in scheduled_streams.items():
+                    # Move to the next item on the dictionary if we are not yet at the stream's time
+                    if start_time > now: continue
+                    
+                    # Flag the stream as ongoing if we are at the time, and get its Chat ID
+                    is_streaming = True
+                    self.youtube_chat_id = chat_id
+                    break
+                
+                # Exit the loop if a scheduled stream is about to start
+                if is_streaming:
+                    del scheduled_streams[self.youtube_chat_id]     # Remove the scheduled stream from the dictionary
+                    break
+                
                 # Is it the time to check if the channel is streaming?
-                if datetime.utcnow() >= next_check:
+                if now >= next_check:
                     
                     # Time for checking again if the channel is streaming
                     wait_time = timedelta(seconds=randint(900, 1200))
-                    next_check = datetime.utcnow() + wait_time
+                    next_check = now + wait_time
+
+                    # Whether to check for upcoming or ongoing streams
+                    _current_event = "upcoming" if (_cycle_count == 3) else "live"
+                    _cycle_count += 1
+                    _cycle_count %= 4
                     
                     # Search for live videos of the channel (results sorted by date, descending)
                     search_request = self.youtube_live_check.search().list(
                         part="id",
                         channelId=self.youtube_channel,
-                        eventType="live",
-                        maxResults=1,
+                        eventType=_current_event,
+                        maxResults=10,
                         order="date",
                         type="video"
                     )
@@ -445,28 +476,46 @@ class OscarBot():
                         # Log the raw search results
                         self.raw_youtube_log(search_results)
                         
-                        # Set the streaming flag to True and get the Stream ID
-                        is_streaming = True
-                        stream_id = search_results["items"][0]["id"]["videoId"]
+                        for video in search_results["items"]:
+                            # Get the Stream ID
+                            stream_id = video["id"]["videoId"]
 
-                        # Get the ID of the stream's live chat
-                        stream_id_request = self.youtube_live_check.videos().list(
-                            part="liveStreamingDetails",
-                            id=stream_id
-                        )
-                        with self.youtube_lock:
-                            try:
-                                stream_id_results = stream_id_request.execute()
-                            except (BrokenPipeError, socket.timeout):
-                                self.youtube_error_log()
-                        self.raw_youtube_log(stream_id_results)
-                        self.youtube_chat_id = stream_id_results["items"][0]["liveStreamingDetails"]["activeLiveChatId"]
+                            # Get the ID of the stream's live chat
+                            stream_id_request = self.youtube_live_check.videos().list(
+                                part="liveStreamingDetails",
+                                id=stream_id
+                            )
+                            with self.youtube_lock:
+                                try:
+                                    stream_id_results = stream_id_request.execute()
+                                except (BrokenPipeError, socket.timeout):
+                                    self.youtube_error_log()
+                            self.raw_youtube_log(stream_id_results)
+                            chat_id = stream_id_results["items"][0]["liveStreamingDetails"]["activeLiveChatId"]
+                            
+                            if _current_event == "live":
+                                # Set the streaming flag to True
+                                is_streaming = True
+                                self.youtube_chat_id = chat_id
+                            
+                            elif _current_event == "upcoming":
+                                # Get the stream's starting time
+                                start_time = datetime.fromisoformat(
+                                    stream_id_results["items"][0]["liveStreamingDetails"]["scheduledStartTime"][:-1]
+                                    # Note: The API returns the UTC time as an string that ends in "Z".
+                                    #       The [:-1] slice is for skipping the Z at the end, so Python can convert it
+                                    #       to a datetime object without raising an error.
+                                )
+                                
+                                # Add the scheduled stream to the dictionary
+                                # Note: The bot gets to the stream's chat 5 minutes before the scheduled start time
+                                scheduled_streams[chat_id] = start_time - timedelta(minutes=5)
 
                         # Break from the loop if the channel is streaming
-                        break
+                        if is_streaming: break
                 
-                # Wait one second before restarting the loop
-                sleep(1.0)
+                # Wait five seconds before restarting the loop
+                sleep(5.0)
             
             # Listening for chat messages
             self.next_youtube_reply = datetime.utcnow()
