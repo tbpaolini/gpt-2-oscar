@@ -434,7 +434,7 @@ class OscarBot():
                     with self.youtube_lock:
                         try:
                             search_results = search_request.execute()
-                        except BrokenPipeError:
+                        except (BrokenPipeError, socket.timeout):
                             # This is an error that for whatever reason happens on Linux, once in a while, with the Google API library.
                             # It does not seem to be fault of my code, and we can connect if we try again.
                             self.youtube_error_log()
@@ -457,7 +457,7 @@ class OscarBot():
                         with self.youtube_lock:
                             try:
                                 stream_id_results = stream_id_request.execute()
-                            except BrokenPipeError:
+                            except (BrokenPipeError, socket.timeout):
                                 self.youtube_error_log()
                         self.raw_youtube_log(stream_id_results)
                         self.youtube_chat_id = stream_id_results["items"][0]["liveStreamingDetails"]["activeLiveChatId"]
