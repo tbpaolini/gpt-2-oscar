@@ -7,7 +7,7 @@ cleaned_path = Path("cleaned")
 
 # Regular expressions for cleaning the dataset
 string_regex = re.compile(r'"(.+)"')        # Get the strings
-tokens_regex = re.compile(r'([%~$^\*]\d+_)')  # Get the text's markup
+tokens_regex = re.compile(r'([%~$^\*&]\d+_)')  # Get the text's markup
 spaces_regex = re.compile(r'(\s{2,})')   # Get sequences of 2 or more blank spaces
 ellipsis_regex = re.compile(r'^\.\.\.(.+?)\.\.\.$') # Get the lines that start AND end with 3 periods
 yes_no_regex = re.compile(r"#(?:Yes|No)\b")             # Get the "Yes" or "No" from the multiple choice dialog
