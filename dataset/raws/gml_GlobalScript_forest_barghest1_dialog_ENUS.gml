@@ -1,4 +1,4 @@
-forest_barghest1_dialog_ENUS = function() //gml_Script_forest_barghest1_dialog_ENUS
+function forest_barghest1_dialog_ENUS() //gml_Script_forest_barghest1_dialog_ENUS
 {
     global.dialog_array[1][1] = "%4_$3_Wh... what...?"
     global.dialog_array[1][2] = (1 << 0)
@@ -30,6 +30,5 @@ forest_barghest1_dialog_ENUS = function() //gml_Script_forest_barghest1_dialog_E
     global.dialog_array[14][2] = (5 << 0)
     global.dialog_array[15][1] = "*3_%2_Light #Amplify #Abscond"
     global.dialog_array[15][2] = (4 << 0)
-    return;
 }
 

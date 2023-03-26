@@ -1,4 +1,4 @@
-darkworld_portals_dialog_ENUS = function() //gml_Script_darkworld_portals_dialog_ENUS
+function darkworld_portals_dialog_ENUS() //gml_Script_darkworld_portals_dialog_ENUS
 {
     global.dialog_array[1][1] = "%4_Baron...?"
     global.dialog_array[1][2] = (1 << 0)
@@ -34,6 +34,5 @@ darkworld_portals_dialog_ENUS = function() //gml_Script_darkworld_portals_dialog
     global.dialog_array[16][2] = (6 << 0)
     global.dialog_array[17][1] = "#              ...You lose..."
     global.dialog_array[17][2] = (6 << 0)
-    return;
 }
 

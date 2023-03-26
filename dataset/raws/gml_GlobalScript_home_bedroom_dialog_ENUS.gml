@@ -1,4 +1,4 @@
-home_bedroom_dialog_ENUS = function() //gml_Script_home_bedroom_dialog_ENUS
+function home_bedroom_dialog_ENUS() //gml_Script_home_bedroom_dialog_ENUS
 {
     global.dialog_array[1][1] = "Going back to bed seems like a bad idea."
     global.dialog_array[2][1] = "There we go, all set to battle the day."
@@ -36,6 +36,5 @@ home_bedroom_dialog_ENUS = function() //gml_Script_home_bedroom_dialog_ENUS
     global.dialog_array[21][1] = "Already fast asleep."
     global.dialog_array[22][1] = "There's a huge slash across the back..."
     global.dialog_array[23][1] = "It's too stormy to see anything..."
-    return;
 }
 
