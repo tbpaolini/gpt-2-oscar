@@ -34,7 +34,7 @@ for input_path in dataset_path.glob("*_ENUS.gml"):
         for line in raw_lines:
             # Skip repeated lines of text
             if line == previous_line: continue
-            line = previous_line
+            previous_line = line
             
             # Skip placeholder lines
             if line.startswith("[PH]"): continue
