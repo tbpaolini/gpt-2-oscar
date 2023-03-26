@@ -1,4 +1,4 @@
-forest_darkbough_dialog_ENUS = function() //gml_Script_forest_darkbough_dialog_ENUS
+function forest_darkbough_dialog_ENUS() //gml_Script_forest_darkbough_dialog_ENUS
 {
     global.dialog_array[4000][1] = "There's a ledger set on this stump.$40_ $1_#Each page is smudged with damp ink."
     global.dialog_array[4000][2] = (0 << 0)
@@ -10,6 +10,5 @@ forest_darkbough_dialog_ENUS = function() //gml_Script_forest_darkbough_dialog_E
     global.dialog_array[4003][2] = (0 << 0)
     global.dialog_array[4004][1] = "Rest for a while?#  No#  Yes"
     global.dialog_array[4004][2] = (0 << 0)
-    return;
 }
 

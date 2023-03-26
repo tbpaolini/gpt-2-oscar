@@ -1,4 +1,4 @@
-global_bedhead_dialog_ENUS = function() //gml_Script_global_bedhead_dialog_ENUS
+function global_bedhead_dialog_ENUS() //gml_Script_global_bedhead_dialog_ENUS
 {
     global.dialog_array[1][1] = "Going back to bed seems like a bad idea."
     global.dialog_array[4][1] = "It's too stormy to see anything..."
@@ -24,6 +24,12 @@ global_bedhead_dialog_ENUS = function() //gml_Script_global_bedhead_dialog_ENUS
     global.dialog_array[14][2] = (35 << 0)
     global.dialog_array[15][1] = "Gotta work on my meows, man."
     global.dialog_array[15][2] = (35 << 0)
+    global.dialog_array[16][1] = "~1_PURR PURR PURR PURR PURR PURR PURR PURR #PURR PURR PURR PURR PURR PURR PURR PURR #PURR PURR PURR PURR PURR PURR PURR PURR"
+    global.dialog_array[16][2] = (52 << 0)
+    global.dialog_array[17][1] = "I have the most powerful purrs, man."
+    global.dialog_array[17][2] = (52 << 0)
+    global.dialog_array[18][1] = "Also headbutts$10_...$20_ $1_but purrs too."
+    global.dialog_array[18][2] = (52 << 0)
     global.dialog_array[100][1] = "The receiver clicks as you pick it up."
     global.dialog_array[101][1] = "%6_Hello son, it's your dad."
     global.dialog_array[101][2] = (3 << 0)
@@ -32,6 +38,5 @@ global_bedhead_dialog_ENUS = function() //gml_Script_global_bedhead_dialog_ENUS
     global.dialog_array[500][1] = "%6_I gotta run.$40_ $1_Don't forget I'm #only a phone call away."
     global.dialog_array[500][2] = (3 << 0)
     global.dialog_array[501][1] = "The receiver clicks again as it cuts out."
-    return;
 }
 

@@ -1,4 +1,4 @@
-binder_booktrial2_dialog_ENUS = function() //gml_Script_binder_booktrial2_dialog_ENUS
+function binder_booktrial2_dialog_ENUS() //gml_Script_binder_booktrial2_dialog_ENUS
 {
     global.dialog_array[1][1] = "%3_Great job getting through that!$40_ $1_#Let me know if you need help."
     global.dialog_array[1][2] = (4 << 0)
@@ -14,6 +14,5 @@ binder_booktrial2_dialog_ENUS = function() //gml_Script_binder_booktrial2_dialog
     global.dialog_array[8][1] = "^12285846_Bend the power to our will..."
     global.dialog_array[5000][1] = "You found a levitating sock.$40_ $1_#Space!"
     global.dialog_array[5000][2] = (0 << 0)
-    return;
 }
 

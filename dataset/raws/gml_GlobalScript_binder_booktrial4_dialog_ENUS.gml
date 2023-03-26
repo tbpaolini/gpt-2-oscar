@@ -1,4 +1,4 @@
-binder_booktrial4_dialog_ENUS = function() //gml_Script_binder_booktrial4_dialog_ENUS
+function binder_booktrial4_dialog_ENUS() //gml_Script_binder_booktrial4_dialog_ENUS
 {
     global.dialog_array[1][1] = "You're almost there.$40_ $1_#The Artifact is just up ahead.$40_ $1_%3_#Be careful Lore..."
     global.dialog_array[1][2] = (4 << 0)
@@ -12,6 +12,5 @@ binder_booktrial4_dialog_ENUS = function() //gml_Script_binder_booktrial4_dialog
     global.dialog_array[5][2] = (1 << 0)
     global.dialog_array[6][1] = "%7_&1_RUN YOU FOOL!!!"
     global.dialog_array[6][2] = (4 << 0)
-    return;
 }
 

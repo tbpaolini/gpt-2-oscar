@@ -1,4 +1,4 @@
-home_hallway_dialog_ENUS = function() //gml_Script_home_hallway_dialog_ENUS
+function home_hallway_dialog_ENUS() //gml_Script_home_hallway_dialog_ENUS
 {
     global.dialog_array[1][1] = "Damn, he must be up."
     global.dialog_array[1][2] = (1 << 0)
@@ -42,6 +42,5 @@ home_hallway_dialog_ENUS = function() //gml_Script_home_hallway_dialog_ENUS
     global.dialog_array[204][1] = "That lightswitch frying must have killed #the power..."
     global.dialog_array[205][1] = "Must have died while I was outside."
     global.dialog_array[206][1] = "Must have died during the night."
-    return;
 }
 

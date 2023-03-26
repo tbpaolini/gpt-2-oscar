@@ -1,4 +1,4 @@
-home_kitchen_dialog_ENUS = function() //gml_Script_home_kitchen_dialog_ENUS
+function home_kitchen_dialog_ENUS() //gml_Script_home_kitchen_dialog_ENUS
 {
     global.dialog_array[1][1] = "It's full of$10_... $1_socks?"
     global.dialog_array[2][1] = "You can't even wash them.$40_ $1_#There isn't any soap."
@@ -63,6 +63,5 @@ home_kitchen_dialog_ENUS = function() //gml_Script_home_kitchen_dialog_ENUS
     global.dialog_array[204][1] = "That lightswitch frying must have killed #the power..."
     global.dialog_array[205][1] = "Must have died while I was outside."
     global.dialog_array[206][1] = "Must have died during the night."
-    return;
 }
 

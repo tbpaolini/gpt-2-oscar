@@ -1,4 +1,4 @@
-binder_bookhome_dialog_ENUS = function() //gml_Script_binder_bookhome_dialog_ENUS
+function binder_bookhome_dialog_ENUS() //gml_Script_binder_bookhome_dialog_ENUS
 {
     global.dialog_array[1][1] = "%3_Home at last."
     global.dialog_array[1][2] = (4 << 0)
@@ -174,6 +174,5 @@ binder_bookhome_dialog_ENUS = function() //gml_Script_binder_bookhome_dialog_ENU
     global.dialog_array[4004][2] = (0 << 0)
     global.dialog_array[5000][1] = "You found a sock reading a book.$40_ $1_#Smart!"
     global.dialog_array[5000][2] = (0 << 0)
-    return;
 }
 

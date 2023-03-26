@@ -1,4 +1,4 @@
-home_yard_dialog_ENUS = function() //gml_Script_home_yard_dialog_ENUS
+function home_yard_dialog_ENUS() //gml_Script_home_yard_dialog_ENUS
 {
     global.dialog_array[1][1] = "Throw out the garbage?#  Yes#  No"
     global.dialog_array[2][1] = "Throw something out?#  Garbage#  Viking Feast"
@@ -71,6 +71,5 @@ home_yard_dialog_ENUS = function() //gml_Script_home_yard_dialog_ENUS
     global.dialog_array[39][2] = (1 << 0)
     global.dialog_array[5000][1] = "You found a wet sock.$40_ $1_#Slimy!"
     global.dialog_array[5000][2] = (0 << 0)
-    return;
 }
 

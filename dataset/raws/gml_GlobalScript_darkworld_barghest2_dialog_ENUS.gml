@@ -1,4 +1,4 @@
-darkworld_barghest2_dialog_ENUS = function() //gml_Script_darkworld_barghest2_dialog_ENUS
+function darkworld_barghest2_dialog_ENUS() //gml_Script_darkworld_barghest2_dialog_ENUS
 {
     global.dialog_array[1][1] = "~1_         ...Can you feel it?..."
     global.dialog_array[1][2] = (6 << 0)
@@ -72,6 +72,5 @@ darkworld_barghest2_dialog_ENUS = function() //gml_Script_darkworld_barghest2_di
     global.dialog_array[4003][2] = (0 << 0)
     global.dialog_array[4004][1] = "Try to wake up?#  No#  Yes"
     global.dialog_array[4004][2] = (0 << 0)
-    return;
 }
 
