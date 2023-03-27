@@ -34,7 +34,7 @@ STOP = "STOP"
 UserText:mp.Queue[tuple[str,int]]
 
 def interact_model(
-    model_name='oscar2',
+    model_name='oscar3',
     seed=None,
     nsamples=1,
     batch_size=1,
