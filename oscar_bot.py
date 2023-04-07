@@ -465,7 +465,7 @@ class OscarBot():
                     with self.youtube_lock:
                         try:
                             search_results = search_request.execute()
-                        except (BrokenPipeError, socket.timeout):
+                        except (BrokenPipeError, socket.timeout, ConnectionResetError):
                             # This is an error that for whatever reason happens on Linux, once in a while, with the Google API library.
                             # It does not seem to be fault of my code, and we can connect if we try again.
                             self.youtube_error_log()
@@ -488,7 +488,7 @@ class OscarBot():
                             with self.youtube_lock:
                                 try:
                                     stream_id_results = stream_id_request.execute()
-                                except (BrokenPipeError, socket.timeout):
+                                except (BrokenPipeError, socket.timeout, ConnectionResetError):
                                     self.youtube_error_log()
                             self.raw_youtube_log(stream_id_results)
                             chat_id = stream_id_results["items"][0]["liveStreamingDetails"]["activeLiveChatId"]
@@ -534,7 +534,7 @@ class OscarBot():
                     # The request raises an error if the stream has ended
                     is_streaming = False
                     self.youtube_error_log()
-                except BrokenPipeError:
+                except (BrokenPipeError, ConnectionResetError):
                     self.youtube_error_log()
 
             # Dictionary to associate the ID's of the authors with their usernames
@@ -568,7 +568,7 @@ class OscarBot():
                         with self.youtube_lock:
                             authors_results = authors_request.execute()
                         self.raw_youtube_log(authors_results)
-                    except (googleapiclient.errors.HttpError, BrokenPipeError):
+                    except (googleapiclient.errors.HttpError, BrokenPipeError, ConnectionResetError, socket.timeout):
                         authors_results = {}
                         self.youtube_error_log()
                     
@@ -678,7 +678,7 @@ class OscarBot():
                         is_streaming = False
                         break
                     
-                    except (socket.timeout, BrokenPipeError):
+                    except (socket.timeout, BrokenPipeError, ConnectionResetError):
                         # Wait then retry if there was a timeout
                         self.youtube_error_log()
                         retry_count += 1
@@ -700,7 +700,7 @@ class OscarBot():
                             is_streaming = False
                             self.youtube_error_log()
                             break
-                        except (socket.timeout, BrokenPipeError):
+                        except (socket.timeout, BrokenPipeError, ConnectionResetError):
                             self.youtube_error_log()
                             break
     
@@ -727,7 +727,7 @@ class OscarBot():
                     chat_post = bot_response.execute()
                 self.raw_youtube_log(chat_post)
             
-            except (googleapiclient.errors.HttpError, socket.timeout, BrokenPipeError):
+            except (googleapiclient.errors.HttpError, socket.timeout, BrokenPipeError, ConnectionResetError):
                 self.youtube_error_log()
                 retry_count += 1
                 if retry_count > 5: return
