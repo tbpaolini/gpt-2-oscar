@@ -101,7 +101,7 @@ class IRCLogger():
                 continue
 
             # Decode the data's bytes into Unicode text and split its lines
-            for line in data.decode(encoding="utf-8").split("\r\n"):
+            for line in data.decode(encoding="utf-8", errors="replace").split("\r\n"):
                 
                 # Skip the line if it has no text
                 if not line.strip():

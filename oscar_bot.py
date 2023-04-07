@@ -154,8 +154,8 @@ class OscarBot():
                 self.twitch_command(f"JOIN {self.channel}")            # The Twitch channel the bot is listening
                 
                 # Check if the connection was successful, and print the server's response
-                server_response = self.ssl_sock.recv(2048).decode(encoding="utf-8").split("\r\n")
-                server_response += self.ssl_sock.recv(2048).decode(encoding="utf-8").split("\r\n")
+                server_response = self.ssl_sock.recv(2048).decode(encoding="utf-8", errors="replace").split("\r\n")
+                server_response += self.ssl_sock.recv(2048).decode(encoding="utf-8", errors="replace").split("\r\n")
                 success = False
                 for line in server_response:
                     if "Welcome, GLHF!" in line:
@@ -315,7 +315,7 @@ class OscarBot():
                 empty_data = 0
 
             # Decode the data's bytes into Unicode text and split its lines
-            for line in data.decode(encoding="utf-8").split("\r\n"):
+            for line in data.decode(encoding="utf-8", errors="replace").split("\r\n"):
                 
                 # Respond the server's PING message with a corresponding PONG
                 if line.startswith("PING "):
