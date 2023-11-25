@@ -264,10 +264,6 @@ class OscarBot():
         self.my_youtube_id = response["items"][0]["id"]
         self.raw_youtube_log(response)
 
-        # Backup of the credentials for reading the chat
-        # (we are going to switch to another API key if the quota is over, then restoring the original key later)
-        self._yt_chatget_bak = self.youtube_chat_get
-
         print("Connected to YouTube.")
     
     def cache_youtube_credentials(self):
@@ -438,7 +434,6 @@ class OscarBot():
                     # Flag the stream as ongoing if we are at the time, and get its Chat ID
                     is_streaming = True
                     self.youtube_chat_id = chat_id
-                    self.youtube_chat_get = self._yt_chatget_bak
                     break
                 
                 # Exit the loop if a scheduled stream is about to start
@@ -502,7 +497,6 @@ class OscarBot():
                                 # Set the streaming flag to True
                                 is_streaming = True
                                 self.youtube_chat_id = chat_id
-                                self.youtube_chat_get = self._yt_chatget_bak
                             
                             elif _current_event == "upcoming":
                                 # Get the stream's starting time
@@ -536,15 +530,9 @@ class OscarBot():
                 try:
                     with self.youtube_lock:
                         messages_results = messages_request.execute()
-                except googleapiclient.errors.HttpError as error:
+                except googleapiclient.errors.HttpError:
                     # The request raises an error if the stream has ended
-                    if ("'quotaExceeded'" in error.args[0]) and self.youtube_chat_get != self.youtube_chat_send:
-                        # Since we don't post messages as often as we read,
-                        # the API key used for sending should have plenty of quota to spare
-                        self.youtube_chat_get = self.youtube_chat_send
-                    else:
-                        # Stop listening for messages if the stream has ended or there's no quota for the API keys
-                        is_streaming = False
+                    is_streaming = False
                     self.youtube_error_log()
                 except (BrokenPipeError, ConnectionResetError):
                     self.youtube_error_log()
@@ -684,16 +672,10 @@ class OscarBot():
                             messages_results = messages_request.execute()
                         break
                     
-                    except googleapiclient.errors.HttpError as error:
+                    except googleapiclient.errors.HttpError:
                         # The request raises an error if the stream has ended
-                        if ("'quotaExceeded'" in error.args[0]) and self.youtube_chat_get != self.youtube_chat_send:
-                            # Since we don't post messages as often as we read,
-                            # the API key used for sending should have plenty of quota to spare
-                            self.youtube_chat_get = self.youtube_chat_send
-                        else:
-                            # Stop listening for messages if the stream has ended or there's no quota for the API keys
-                            is_streaming = False
                         self.youtube_error_log()
+                        is_streaming = False
                         break
                     
                     except (socket.timeout, BrokenPipeError, ConnectionResetError):
@@ -714,14 +696,8 @@ class OscarBot():
                         try:
                             with self.youtube_lock:
                                 messages_results = messages_request.execute()
-                        except googleapiclient.errors.HttpError as error:
-                            if ("'quotaExceeded'" in error.args[0]) and self.youtube_chat_get != self.youtube_chat_send:
-                                # Since we don't post messages as often as we read,
-                                # the API key used for sending should have plenty of quota to spare
-                                self.youtube_chat_get = self.youtube_chat_send
-                            else:
-                                # Stop listening for messages if the stream has ended or there's no quota for the API keys
-                                is_streaming = False
+                        except googleapiclient.errors.HttpError:
+                            is_streaming = False
                             self.youtube_error_log()
                             break
                         except (socket.timeout, BrokenPipeError, ConnectionResetError):
