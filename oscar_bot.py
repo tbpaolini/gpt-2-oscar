@@ -525,7 +525,7 @@ class OscarBot():
             if is_streaming:
                 messages_request = self.youtube_chat_get.liveChatMessages().list(
                     liveChatId=self.youtube_chat_id,
-                    part="snippet"
+                    part="snippet,authorDetails"
                 )
                 try:
                     with self.youtube_lock:
@@ -537,50 +537,14 @@ class OscarBot():
                 except (BrokenPipeError, ConnectionResetError):
                     self.youtube_error_log()
 
-            # Dictionary to associate the ID's of the authors with their usernames
-            chat_authors = {}
-            
             # Keep retrieving the next messages
             while self.running and is_streaming:
                 
                 # Log the raw messages to file (if there are any)
                 if messages_results["items"]:
                     self.raw_youtube_log(messages_results)
-                
-                # Get the ID's of the authors of the messages
-                # (only for those authors we didn't see yet)
-                new_author_ids = {
-                    message["snippet"]["authorChannelId"]
-                    for message in messages_results["items"]
-                    if message["snippet"]["authorChannelId"] not in chat_authors
-                }
-                
-                # Get the name of the authors of the messages
-                # (the bot performs no API request if there are no new authors)
-                if len(new_author_ids) > 0:
-                    authors_request = self.youtube_chat_get.channels().list(
-                        part="snippet",
-                        id=",".join(author for author in new_author_ids),
-                        maxResults=len(new_author_ids)
-                    )
-                    
-                    try:
-                        with self.youtube_lock:
-                            authors_results = authors_request.execute()
-                        self.raw_youtube_log(authors_results)
-                    except (googleapiclient.errors.HttpError, BrokenPipeError, ConnectionResetError, socket.timeout):
-                        authors_results = {}
-                        self.youtube_error_log()
-                    
-                    # Add the usernames of the new authors to the dictionary
-                    if "items" in authors_results:
-                        new_author_names = {
-                            author["id"]: author["snippet"]["title"]
-                            for author in authors_results["items"]
-                        }
-                        chat_authors.update(new_author_names)
 
-                # Process the received chaat messages
+                # Process the received chat messages
                 for message in messages_results["items"]:
                     
                     # Get the message's text
@@ -593,7 +557,7 @@ class OscarBot():
                     
                     # Get the author's ID and username
                     author_id = message["snippet"]["authorChannelId"]
-                    author_name = chat_authors.get(author_id)
+                    author_name = message["authorDetails"]["displayName"]
                     self._youtube_last_seen_user = author_name
 
                     # Get the message's date and time
@@ -664,7 +628,7 @@ class OscarBot():
                     retry_count = 0
                     messages_request = self.youtube_chat_get.liveChatMessages().list(
                         liveChatId=self.youtube_chat_id,
-                        part="snippet",
+                        part="snippet,authorDetails",
                         pageToken=messages_results["nextPageToken"]
                     )
                     try:
@@ -691,7 +655,7 @@ class OscarBot():
                         parsed_old_messages = False
                         messages_request = self.youtube_chat_get.liveChatMessages().list(
                             liveChatId=self.youtube_chat_id,
-                            part="snippet",
+                            part="snippet,authorDetails",
                         )
                         try:
                             with self.youtube_lock:
