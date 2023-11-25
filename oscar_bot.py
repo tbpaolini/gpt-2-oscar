@@ -406,6 +406,11 @@ class OscarBot():
         # The last seen user (to be used with StreamAvatars' interactions)
         self._youtube_last_seen_user = "random"
 
+        # This value increments by 1 on each YouTube search, from 0 to 40, then it starts again.
+        # When it is 40, we are going to check if there is a live stream scheduled.
+        # Otherwise, we are going to check if there is a live stream currently ongoing.
+        _cycle_count = 0
+
         # Listen for chat messages if the channel is currently streaming
         while self.running:
             # Note: We are going to wait 15 to 20 minutes between checks for live streams because they
@@ -417,11 +422,6 @@ class OscarBot():
             
             # Check if the channel is currently streaming
             while self.running:
-                
-                # This value increments by 1 on each YouTube search, from 0 to 3, then it starts again.
-                # When it is 3, we are going to check if there is a live stream scheduled.
-                # Otherwise, we are going to check if there is a live stream currently ongoing.
-                _cycle_count = 0
 
                 # Current time (UTC)
                 now = datetime.utcnow()
@@ -449,9 +449,10 @@ class OscarBot():
                     next_check = now + wait_time
 
                     # Whether to check for upcoming or ongoing streams
-                    _current_event = "upcoming" if (_cycle_count == 3) else "live"
+                    # (we are going to do this check roughly twice a day)
+                    _current_event = "upcoming" if (_cycle_count == 40) else "live"
                     _cycle_count += 1
-                    _cycle_count %= 4
+                    _cycle_count %= 41
                     
                     # Search for live videos of the channel (results sorted by date, descending)
                     search_request = self.youtube_live_check.search().list(
