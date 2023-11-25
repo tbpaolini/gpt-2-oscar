@@ -538,7 +538,7 @@ class OscarBot():
                         messages_results = messages_request.execute()
                 except googleapiclient.errors.HttpError as error:
                     # The request raises an error if the stream has ended
-                    if ("'quotaExceeded'" in error.args[0]) and self.youtube_chat_get is not self.youtube_chat_send:
+                    if ("'quotaExceeded'" in error.args[0]) and self.youtube_chat_get != self.youtube_chat_send:
                         # Since we don't post messages as often as we read,
                         # the API key used for sending should have plenty of quota to spare
                         self.youtube_chat_get = self.youtube_chat_send
@@ -686,7 +686,7 @@ class OscarBot():
                     
                     except googleapiclient.errors.HttpError as error:
                         # The request raises an error if the stream has ended
-                        if ("'quotaExceeded'" in error.args[0]) and self.youtube_chat_get is not self.youtube_chat_send:
+                        if ("'quotaExceeded'" in error.args[0]) and self.youtube_chat_get != self.youtube_chat_send:
                             # Since we don't post messages as often as we read,
                             # the API key used for sending should have plenty of quota to spare
                             self.youtube_chat_get = self.youtube_chat_send
@@ -715,7 +715,7 @@ class OscarBot():
                             with self.youtube_lock:
                                 messages_results = messages_request.execute()
                         except googleapiclient.errors.HttpError as error:
-                            if ("'quotaExceeded'" in error.args[0]) and self.youtube_chat_get is not self.youtube_chat_send:
+                            if ("'quotaExceeded'" in error.args[0]) and self.youtube_chat_get != self.youtube_chat_send:
                                 # Since we don't post messages as often as we read,
                                 # the API key used for sending should have plenty of quota to spare
                                 self.youtube_chat_get = self.youtube_chat_send
