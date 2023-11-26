@@ -697,6 +697,7 @@ class OscarBot():
                 retry_count += 1
                 if retry_count > 5: return
                 sleep(2 ** retry_count)
+                continue
             
             self.cache_youtube_credentials()
             return
