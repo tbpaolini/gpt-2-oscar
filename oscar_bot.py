@@ -1,5 +1,11 @@
 from __future__ import annotations
-from src.interactive_conditional_samples import interact_model, STOP
+
+# src.interactive_conditional_samples uses the local GPT-2 model (outdated, slower).
+# bot.kindroid uses the remote Kindroid AI (much better).
+# Only one of them should be imported, uncomment or comment the lines below as needed:
+# from src.interactive_conditional_samples import interact_model, STOP
+from bot.kindroid import interact_model, STOP
+
 from bot.text_process import post_process, pre_process
 from bot.filter import is_okay
 import socket, ssl, os, re, pickle
@@ -368,7 +374,7 @@ class OscarBot():
                     
                     # Queue the message to be answered by the bot
                     message_body = pre_process(message_body)
-                    self.input_queue.put_nowait((TWITCH, message_body, message_id))
+                    self.input_queue.put_nowait((TWITCH, message_body, message_id, username))
 
                     # Reset the cooldown time
                     self.last_reply_time = datetime.utcnow()
@@ -604,7 +610,7 @@ class OscarBot():
                         
                         # Enqueue the message to be answered
                         message_body = pre_process(message_body)
-                        self.input_queue.put_nowait((YOUTUBE, message_body, author_name))
+                        self.input_queue.put_nowait((YOUTUBE, message_body, author_name, author_name))
 
                         # Log the response
                         log_msg = f"{datetime.utcnow()}: [{author_name}] {message_body}\n"
@@ -709,7 +715,7 @@ class OscarBot():
         while self.running:
             response = self.output_queue.get()      # Wait for a new item at the output queue
             if response == STOP: break              # Exit if got the STOP signal
-            platform, message_body, message_id = response   # Get the response's contents and the ID of the message being replied to
+            platform, message_body, message_id, username = response   # Get the response's contents and the ID of the message being replied to
 
             # Check if the response do not have any blocked words
             message_body = post_process(message_body)
@@ -864,5 +870,5 @@ if __name__ == "__main__":
         user = "oscar__bot",
         password = os.getenv("TWITCH_KEY"),
         channel = "#piratesoftware",
-        youtube_channel_id = "UCMnULQ6F6kLDAHxofDWIbrw"
+        youtube_channel_id = "UCMnULQ6F6kLDAHxofDWIbrw",
     )

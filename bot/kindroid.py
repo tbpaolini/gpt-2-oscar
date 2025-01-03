@@ -56,6 +56,7 @@ def interact_model(
 
     # HTTP client for the Kindroid API
     kin = __kindroid_connect()
+    print("-" * 40 + "\nBot is ready! Listening for messages.\n" + "-" * 40)
 
     # Endpoints of the Kindroid API
     kin_send = "/v1/send-message"
