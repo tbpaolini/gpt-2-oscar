@@ -9,3 +9,5 @@ irc_log.txt
 google_client_secrets.json
 auth.bin
 bot/yt_*.txt
+env_oscar/
+
