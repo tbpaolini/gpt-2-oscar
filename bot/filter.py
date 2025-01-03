@@ -15,7 +15,7 @@ def is_okay(text:str):
         token = "".join(letter for letter in word if letter.isalnum())
         if token in filter_set:
             return False
-    
+    if "fag" in text.lower(): return False
     return True
 
 # Remove from the word filter the words that appear in-game
