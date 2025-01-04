@@ -4,6 +4,9 @@ import http.client
 import ssl
 import json
 import multiprocessing as mp
+import pickle
+from pathlib import Path
+from datetime import datetime, timedelta
 from time import sleep
 from os import getenv
 
@@ -14,6 +17,12 @@ YOUTUBE = "youtube"
 # Sensor objects
 STOP = "STOP"
 SUCCESS = "SUCCESS"
+
+# For performing a chat break (it is like "rebooting" the AI)
+PATH_LAST_RESET_TIME  = Path("last_reset.bin").absolute()
+LAST_RESET_MAX_AGE = timedelta(hours=2.0)
+DEFAULT_GREETING = "Welcome to The Tower, newhire! Remember, you are "\
+                   "here forever. I hope you are as excited as we are!"
 
 # # Type of the input and output queues
 # type UserText = mp.Queue[tuple[str,str,str,str]]
@@ -54,6 +63,13 @@ def interact_model(
     KIN_KEY = getenv("KINDROID_KEY")
     AGENT = "OScar Bot (personal project) - https://www.github.com/tbpaolini/gpt-2-oscar"
 
+    # HTTP headers
+    headers = {
+        "User-Agent" : AGENT,
+        "Content-Type" : "application/json",
+        "Authorization" : "Bearer " + KIN_KEY,
+    }
+
     # HTTP client for the Kindroid API
     kin = None
 
@@ -65,6 +81,17 @@ def interact_model(
 
     # Max amount of characters in a response
     CHAR_LIMIT = 200
+
+    # Set the last time of a chat break
+    if not PATH_LAST_RESET_TIME.exists():
+        # Forces a chat break in case no last reset time was found cached
+        last_reset_time = datetime.utcnow() - LAST_RESET_MAX_AGE
+        with open(PATH_LAST_RESET_TIME, "wb") as last_reset_file:
+            pickle.dump(last_reset_time, last_reset_file)
+    else:
+        # Load the cached last reset time
+        with open(PATH_LAST_RESET_TIME, "rb") as last_reset_file:
+            last_reset_time = pickle.load(last_reset_file)
     
     # Listen and respond to messages
     while True:
@@ -80,6 +107,24 @@ def interact_model(
         # HTTP client for the Kindroid API
         kin = __kindroid_connect()
 
+        # Perform a chat break if one was made over 2 hours ago
+        # (the bot tends to get repetitive after a while, this mitigates the issue)
+        current_time = datetime.utcnow()
+        last_reset_age = current_time - last_reset_time
+        if last_reset_age >= LAST_RESET_MAX_AGE:
+            body = json.dumps({
+                "ai_id" : KIN_ID,
+                "greeting" : DEFAULT_GREETING,
+            })
+            status_msg = __kindroid_request(kin, method="POST", url=kin_restart, body=body, headers=headers)
+            if status_msg == SUCCESS:
+                resp = kin.getresponse()
+                resp.read()
+                if resp.status == 200:
+                    last_reset_time = current_time
+                    with open(PATH_LAST_RESET_TIME, "wb") as last_reset_file:
+                        pickle.dump(last_reset_time, last_reset_file)
+
         # Change the character limit based on the platform
         if platform == TWITCH:
             CHAR_LIMIT = 500
@@ -88,13 +133,6 @@ def interact_model(
 
         # Give enough room for the username
         CHAR_LIMIT -= (len(username) + 2)
-
-        # HTTP headers
-        headers = {
-            "User-Agent" : AGENT,
-            "Content-Type" : "application/json",
-            "Authorization" : "Bearer " + KIN_KEY,
-        }
 
         # Instruct the AI to respond within the character limit
         OOC = f"(OOC: respond using up to {CHAR_LIMIT} characters.)"
