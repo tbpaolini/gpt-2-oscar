@@ -462,7 +462,7 @@ class OscarBot():
                     
                     # Search for live videos of the channel (results sorted by date, descending)
                     search_request = self.youtube_live_check.search().list(
-                        part="id",
+                        part="id,snippet",
                         channelId=self.youtube_channel,
                         eventType=_current_event,
                         maxResults=10,
@@ -484,6 +484,12 @@ class OscarBot():
                         self.raw_youtube_log(search_results)
                         
                         for video in search_results["items"]:
+                            #Get the video's title
+                            video_title:str = video["snippet"]["title"].lower()
+
+                            # Ignore ferret streams
+                            if "ferret" in video_title: continue
+                            
                             # Get the Stream ID
                             stream_id = video["id"]["videoId"]
 
