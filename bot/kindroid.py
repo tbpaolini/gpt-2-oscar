@@ -86,6 +86,9 @@ def interact_model(
         elif platform == YOUTUBE:
             CHAR_LIMIT = 200
 
+        # Give enough room for the username
+        CHAR_LIMIT -= (len(username) + 2)
+
         # HTTP headers
         headers = {
             "User-Agent" : AGENT,
