@@ -877,4 +877,5 @@ if __name__ == "__main__":
         password = os.getenv("TWITCH_KEY"),
         channel = "#piratesoftware",
         youtube_channel_id = "UCMnULQ6F6kLDAHxofDWIbrw",
+        streamavatars_wait_multiplier = 0,  # Disable interaction with Stream Avatars
     )
