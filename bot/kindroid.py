@@ -114,8 +114,8 @@ def interact_model(
             if resp.status == 200:
                 if len(kin_message) > CHAR_LIMIT:
                     # Instruct the AI to trim down the message
-                    temp_message = f"(OOC: Rewrite the text below so it's under the {CHAR_LIMIT}-characters limit. "
-                    "Trim less important information as needed. "
+                    temp_message = f"(OOC: Rewrite the text below so it's under the {CHAR_LIMIT}-characters limit. "\
+                    "Trim less important information as needed. "\
                     f"Respond with nothing except the rewritten text)\n{kin_message}"
                     body = json.dumps({
                         "ai_id" : KIN_ID,
@@ -131,7 +131,7 @@ def interact_model(
             
             # If the HTTP request failed
             else: # resp.status != 200
-                kin_message = "*OScar showed a sad face then crashed. "
+                kin_message = "*OScar showed a sad face then crashed. "\
                 f"The blue screen says: {resp.status} {resp.reason}, I'LL BE BACK!*"
 
         else: # status_msg != SUCCESS
