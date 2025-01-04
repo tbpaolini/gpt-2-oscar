@@ -55,7 +55,8 @@ def interact_model(
     AGENT = "OScar Bot (personal project) - https://www.github.com/tbpaolini/gpt-2-oscar"
 
     # HTTP client for the Kindroid API
-    kin = __kindroid_connect()
+    kin = None
+
     print("-" * 40 + "\nBot is ready! Listening for messages.\n" + "-" * 40)
 
     # Endpoints of the Kindroid API
@@ -72,8 +73,12 @@ def interact_model(
         next_item = input_queue.get()
         if next_item == STOP:
             output_queue.put(STOP, block=False)
+            if kin is not None: kin.close()
             break
         platform, raw_text, response_id, username = next_item
+
+        # HTTP client for the Kindroid API
+        kin = __kindroid_connect()
 
         # Change the character limit based on the platform
         if platform == TWITCH:
@@ -135,3 +140,4 @@ def interact_model(
         
         # Sumbit the response to the output queue
         output_queue.put((platform, kin_message[:CHAR_LIMIT], response_id, username), block=False)
+        kin.close()
