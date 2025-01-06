@@ -20,8 +20,8 @@ SUCCESS = "SUCCESS"
 
 # For performing a chat break (it is like "rebooting" the AI)
 PATH_LAST_RESET_TIME  = Path("last_reset.bin").absolute()
-LAST_RESET_MAX_AGE = timedelta(hours=2.0)
-DEFAULT_GREETING = "Welcome to The Tower, newhire! Remember, you are "\
+LAST_RESET_MAX_AGE = timedelta(hours=6.0)
+DEFAULT_GREETING = "Welcome to The Tower Corp, newhire! Remember, you are "\
                    "here forever. I hope you are as excited as we are!"
 
 # # Type of the input and output queues
@@ -107,7 +107,7 @@ def interact_model(
         # HTTP client for the Kindroid API
         kin = __kindroid_connect()
 
-        # Perform a chat break if one was made over 2 hours ago
+        # Perform a chat break if one was made over 6 hours ago
         # (the bot tends to get repetitive after a while, this mitigates the issue)
         current_time = datetime.utcnow()
         last_reset_age = current_time - last_reset_time
