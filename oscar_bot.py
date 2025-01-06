@@ -270,6 +270,11 @@ class OscarBot():
         self.my_youtube_id = response["items"][0]["id"]
         self.raw_youtube_log(response)
 
+        # Temporary backup for the credentials (so we can restore them to the initial values)
+        # (because we are going to alternate between different API keys to avoid quota exhaustion)
+        self.__bak_youtube_chat_get = self.youtube_chat_get
+        self.__bak_youtube_chat_send = self.youtube_chat_send
+
         print("Connected to YouTube.")
     
     def cache_youtube_credentials(self):
@@ -510,6 +515,20 @@ class OscarBot():
                                 # Set the streaming flag to True
                                 is_streaming = True
                                 self.youtube_chat_id = chat_id
+
+                                # Check for how long the stream has been online
+                                video_datetime_str = video["snippet"]["publishedAt"][:-1]
+                                video_datetime = datetime.fromisoformat(video_datetime_str)
+                                video_max_age = timedelta(hours=8)
+                                video_age = now - video_datetime
+                                if video_age <= video_max_age:
+                                    self.youtube_chat_get = self.__bak_youtube_chat_get # Default API key for getting chat messages
+                                else:
+                                    self.youtube_chat_get = self.__bak_youtube_chat_send
+                                    # Note: The API quota runs out at after around 8h 20min of chat checking.
+                                    #       So here we are bypassing it by switching the API key for the chat check.
+                                    #       Since the API key for sending messages is used far less, we are switching
+                                    #       to it for also checking the chat when the stream is over 8 hours in.
                             
                             elif _current_event == "upcoming":
                                 # Get the stream's starting time
@@ -635,7 +654,7 @@ class OscarBot():
                     # Note: The API's response tells how long to wait in the field "pollingIntervalMillis".
                     # That time usually is around 3 seconds. But if we use that time, we are going to run
                     # out of quota in 1h 40min. So we are going to wait for 15 seconds instead, so we can
-                    # last for a little over 6h.
+                    # last for a little over 8h.
                     sleep(15)
                     
                     retry_count = 0
