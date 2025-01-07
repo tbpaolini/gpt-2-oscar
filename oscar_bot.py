@@ -345,28 +345,29 @@ class OscarBot():
                     self._twitch_last_seen_user = username
 
                     # Check if the bot was challenged to a duel
-                    if ("!duel" in message_body) and (self.user.lower() in message_body.lower()):
-                        self.duel = TWITCH
-                        self.duel_last_user = username
-                        continue
-
-                    # Check for duel messages from StreamAvatars
-                    if username.lower() == self.channel[1:]:
-                    
-                        # Send a duel request back if StreamAvatars failed to find this bot
-                        # (that might happen if the bot did not send a message in a while)
-                        if (f"Could not find target {self.user}" == message_body):
-                            self.duel = False
-                            self.twitch_command(f"PRIVMSG {self.channel} :!duel {self.duel_last_user}")
+                    if (self.streamavatars_wait_multiplier > 0):
+                        if ("!duel" in message_body) and (self.user.lower() in message_body.lower()):
+                            self.duel = TWITCH
+                            self.duel_last_user = username
                             continue
 
-                        # Do not respond to the automatic duel messages
-                        ignore = False
-                        for ignored in self.ignored_messages:
-                            if ignored in message_body:
-                                ignore = True
-                                break
-                        if (ignore): continue
+                        # Check for duel messages from StreamAvatars
+                        if username.lower() == self.channel[1:]:
+                        
+                            # Send a duel request back if StreamAvatars failed to find this bot
+                            # (that might happen if the bot did not send a message in a while)
+                            if (f"Could not find target {self.user}" == message_body):
+                                self.duel = False
+                                self.twitch_command(f"PRIVMSG {self.channel} :!duel {self.duel_last_user}")
+                                continue
+
+                            # Do not respond to the automatic duel messages
+                            ignore = False
+                            for ignored in self.ignored_messages:
+                                if ignored in message_body:
+                                    ignore = True
+                                    break
+                            if (ignore): continue
 
                     # Check how long ago the bot has last replied
                     last_reply_age = datetime.utcnow() - self.last_reply_time
@@ -600,27 +601,28 @@ class OscarBot():
                         youtube_log.write(f"{message_datetime}: [{author_name}] {message_body}\n")
                     
                     # Handle incoming duels
-                    if DUEL_REGEX.match(message_body) is not None:
-                        self.duel = YOUTUBE
-                        self.duel_last_user = author_name
-                        continue
-
-                    # Check the duel messages from StreamAvatars
-                    if author_id == self.youtube_channel:
-                        
-                        # Resend a failed duel
-                        if FAIL_REGEX.match(message_body) is not None:
-                            self.duel = False
-                            self.post_on_youtube_chat(f"!duel {self.duel_last_user}")
+                    if (self.streamavatars_wait_multiplier > 0):
+                        if DUEL_REGEX.match(message_body) is not None:
+                            self.duel = YOUTUBE
+                            self.duel_last_user = author_name
                             continue
-                        
-                        # Ignore the status messages
-                        ignore = False
-                        for ignored in self.ignored_messages:
-                            if ignored in message_body:
-                                ignore = True
-                                break
-                        if (ignore): continue
+
+                        # Check the duel messages from StreamAvatars
+                        if author_id == self.youtube_channel:
+                            
+                            # Resend a failed duel
+                            if FAIL_REGEX.match(message_body) is not None:
+                                self.duel = False
+                                self.post_on_youtube_chat(f"!duel {self.duel_last_user}")
+                                continue
+                            
+                            # Ignore the status messages
+                            ignore = False
+                            for ignored in self.ignored_messages:
+                                if ignored in message_body:
+                                    ignore = True
+                                    break
+                            if (ignore): continue
                 
                     # Check if the message needs to be replied by the bot
                     # Note: The bot does not respond to messages posted before it went online.
