@@ -440,7 +440,7 @@ class OscarBot():
                 # Check if a scheduled stream is about to start
                 for chat_id, start_time in scheduled_streams.items():
                     # Move to the next item on the dictionary if we are not yet at the stream's time
-                    if start_time > now: continue
+                    if start_time < now: continue
                     
                     # Flag the stream as ongoing if we are at the time, and get its Chat ID
                     is_streaming = True
