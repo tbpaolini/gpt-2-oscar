@@ -5,6 +5,7 @@ import ssl
 import json
 import multiprocessing as mp
 import pickle
+import re, bot.text_process
 from pathlib import Path
 from datetime import datetime, timedelta
 from time import sleep
@@ -26,6 +27,10 @@ DEFAULT_GREETING = "Welcome to The Tower Corp, newhire! Remember, you are "\
 
 # # Type of the input and output queues
 # type UserText = mp.Queue[tuple[str,str,str,str]]
+
+# We are overrinding the default response cropping regular expression,
+# because Kindroid already does a good job at giving a well-formated response.
+bot.text_process.RESPONSE_REGEX = re.compile(r"(?s).+")
 
 def __kindroid_connect() -> http.client.HTTPSConnection:
     """(Re)create the secure HTTP client."""
