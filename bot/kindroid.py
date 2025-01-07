@@ -140,7 +140,7 @@ def interact_model(
         CHAR_LIMIT -= (len(username) + 2)
 
         # Instruct the AI to respond within the character limit
-        OOC = f"(OOC: respond using up to {CHAR_LIMIT} characters.)"
+        OOC = f"(OOC: respond under {CHAR_LIMIT} characters.)"
 
         # Request body in JSON format
         body = json.dumps({
