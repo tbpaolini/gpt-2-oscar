@@ -118,8 +118,8 @@ def interact_model(
             break
         platform, raw_text, response_id, username = next_item
 
-        # HTTP client for the Kindroid API
-        kin = __kindroid_connect()
+        # Create the HTTP client if there isn't already one
+        if kin is None: kin = __kindroid_connect()
 
         # Perform a chat break if one was made over 6 hours ago
         # (the bot tends to get repetitive after a while, this mitigates the issue)
@@ -197,4 +197,8 @@ def interact_model(
         
         # Sumbit the response to the output queue
         output_queue.put((platform, kin_message[:CHAR_LIMIT], response_id, username), block=False)
-        if input_queue.empty(): kin.close()
+        
+        # Close the connection if the input queue is empty
+        if input_queue.empty():
+            kin.close()
+            kin = None
