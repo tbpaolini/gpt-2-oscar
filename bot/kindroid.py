@@ -32,6 +32,10 @@ DEFAULT_GREETING = "Welcome to The Tower Corp, newhire! Remember, you are "\
 # because Kindroid already does a good job at giving a well-formated response.
 bot.text_process.RESPONSE_REGEX = re.compile(r"(?s).+")
 
+# Sometimes the AI responds with OOC (out-of-character) statements,
+# this regular expression is for matching them.
+OOC_REGEX = re.compile(r"(?i)\(OOC:.*?\)")
+
 def __kindroid_connect() -> http.client.HTTPSConnection:
     """(Re)create the secure HTTP client."""
     host = "api.kindroid.ai"
@@ -56,6 +60,10 @@ def __kindroid_request(client:http.client.HTTPSConnection, method, url, body, he
             sleep(2**count)
     
     return status
+
+def __remove_ooc(text:str) -> str:
+    """Remove OOC (out-of-character) statements from the AI's response."""
+    return OOC_REGEX.sub("", text)
 
 def interact_model(
         input_queue:mp.Queue[tuple[str,str,str,str]],
@@ -158,6 +166,7 @@ def interact_model(
 
             # If the HTTP request was successfull
             if resp.status == 200:
+                kin_message = __remove_ooc(kin_message)
                 if len(kin_message) > CHAR_LIMIT:
                     # Instruct the AI to trim down the message
                     temp_message = f"(OOC: Rewrite the text below so it's under the {CHAR_LIMIT}-characters limit. "\
@@ -174,6 +183,7 @@ def interact_model(
                         resp = kin.getresponse()
                         if resp.status == 200:
                             kin_message = resp.read().decode("utf-8", "replace")
+                            kin_message = __remove_ooc(kin_message)
             
             # If the HTTP request failed
             else: # resp.status != 200
