@@ -196,4 +196,4 @@ def interact_model(
         
         # Sumbit the response to the output queue
         output_queue.put((platform, kin_message[:CHAR_LIMIT], response_id, username), block=False)
-        kin.close()
+        if input_queue.empty(): kin.close()
