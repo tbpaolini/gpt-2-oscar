@@ -781,10 +781,13 @@ class OscarBot():
                 chatlog_file.write(log_msg)
             
             # Print on the terminal the time when the bot's cooldown expires
-            if platform == TWITCH:
-                print(f"Next response: {self.last_reply_time + self.cooldown}", end="\r")
-            elif platform == YOUTUBE:
-                print(f"Next response: {self.next_youtube_reply}", end="\r")
+            twitch_next = str(self.last_reply_time + self.cooldown)[11:19]
+            youtube_next = str(self.next_youtube_reply)[11:19]
+            print(f"Next response: (TW) {twitch_next} | (YT) {youtube_next}", end="\r")
+            # if platform == TWITCH:
+            #     print(f"Next response: {self.last_reply_time + self.cooldown}", end="\r")
+            # elif platform == YOUTUBE:
+            #     print(f"Next response: {self.next_youtube_reply}", end="\r")
     
     def streamavatars_interact(self):
         """Every now and then, send some random StreamAvatars commands to interact with other users."""
