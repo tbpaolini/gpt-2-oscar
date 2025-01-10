@@ -388,7 +388,7 @@ class OscarBot():
 
                     # Log the response
                     message_timestamp = float(message_timestamp) / 1000.0
-                    log_msg = f"{datetime.fromtimestamp(message_timestamp)}: [{username}] {message_body}\n"
+                    log_msg = f"(TW) {datetime.fromtimestamp(message_timestamp)}: [{username}] {message_body}\n"
                     print(log_msg, end="")
                     with open(self.chatlog, "at", encoding="utf-8") as chatlog_file:
                         chatlog_file.write(log_msg)
@@ -643,7 +643,7 @@ class OscarBot():
                         self.input_queue.put_nowait((YOUTUBE, message_body, author_name, author_name))
 
                         # Log the response
-                        log_msg = f"{datetime.utcnow()}: [{author_name}] {message_body}\n"
+                        log_msg = f"(YT) {datetime.utcnow()}: [{author_name}] {message_body}\n"
                         print(log_msg, end="")
                         with open(self.chatlog, "at", encoding="utf-8") as chatlog_file:
                             chatlog_file.write(log_msg)
@@ -766,8 +766,16 @@ class OscarBot():
                 else:
                     self.post_on_youtube_chat(f"{message_body}")
 
-            # Log the response
-            log_msg = f"{datetime.utcnow()}: [{self.user}] {message_body}\n"
+            # Platform prefix for logging the chat messages
+            if platform == TWITCH:
+                prefix = "(TW) "
+            elif platform == YOUTUBE:
+                prefix = "(YT) "
+            else:
+                prefix = ""
+            
+            # # Log the response
+            log_msg = f"{prefix}{datetime.utcnow()}: [{self.user}] {message_body}\n"
             print(log_msg, end="")
             with open(self.chatlog, "at", encoding="utf-8") as chatlog_file:
                 chatlog_file.write(log_msg)
