@@ -36,11 +36,12 @@ bot.text_process.RESPONSE_REGEX = re.compile(r"(?s).+")
 # this regular expression is for matching them.
 OOC_REGEX = re.compile(r"(?i)\(OOC:.*?\)")
 
+__ssl_context = ssl.create_default_context()
 def __kindroid_connect() -> http.client.HTTPSConnection:
     """(Re)create the secure HTTP client."""
+    global __ssl_context
     host = "api.kindroid.ai"
-    ssl_context = ssl.create_default_context()
-    return http.client.HTTPSConnection(host=host, port=443, context=ssl_context)
+    return http.client.HTTPSConnection(host=host, port=443, context=__ssl_context)
 
 def __kindroid_request(client:http.client.HTTPSConnection, method, url, body, headers) -> str:
     """Attempt to send a message a few times, with increasing delay between requests.
