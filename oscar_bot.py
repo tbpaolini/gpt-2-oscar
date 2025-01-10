@@ -432,6 +432,9 @@ class OscarBot():
             #       filter by live videos and the channel ID. And searches are an expensive
             #       operation in the YouTube API.
             
+            # Reset to the default the API key for checking for new chat messages
+            self.youtube_chat_get = self.__bak_youtube_chat_get
+            
             # Check if the channel is currently streaming
             while self.running:
 
