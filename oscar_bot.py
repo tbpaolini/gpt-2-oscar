@@ -218,7 +218,9 @@ class OscarBot():
         
         # Authenticate for receiving chat messages
         api_key_1 = os.getenv("YOUTUBE_KEY_1")
+        api_key_3 = os.getenv("YOUTUBE_KEY_3")
         self.youtube_chat_get = googleapiclient.discovery.build(api_service_name, api_version, developerKey = api_key_1)
+        self.youtube_chat_get2 = googleapiclient.discovery.build(api_service_name, api_version, developerKey = api_key_3)
         
         # Authenticate for checking if the stream is live
         api_key_2 = os.getenv("YOUTUBE_KEY_2")
@@ -273,7 +275,7 @@ class OscarBot():
         # Temporary backup for the credentials (so we can restore them to the initial values)
         # (because we are going to alternate between different API keys to avoid quota exhaustion)
         self.__bak_youtube_chat_get = self.youtube_chat_get
-        self.__bak_youtube_chat_send = self.youtube_chat_send
+        self.__bak_youtube_chat_get2 = self.youtube_chat_get2
 
         print("Connected to YouTube.")
     
@@ -528,7 +530,7 @@ class OscarBot():
                                 if video_age <= video_max_age:
                                     self.youtube_chat_get = self.__bak_youtube_chat_get # Default API key for getting chat messages
                                 else:
-                                    self.youtube_chat_get = self.__bak_youtube_chat_send
+                                    self.youtube_chat_get = self.__bak_youtube_chat_get2
                                     # Note: The API quota runs out at after around 8h 20min of chat checking.
                                     #       So here we are bypassing it by switching the API key for the chat check.
                                     #       Since the API key for sending messages is used far less, we are switching
